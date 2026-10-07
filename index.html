@@ -531,6 +531,10 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
+  .field textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
   .field input:focus, .field textarea:focus, .field select:focus {
     border-color: var(--c-purple);
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
@@ -761,6 +765,7 @@
     <button class="view-btn active" data-view="month">Месяц</button>
   </div>
   <div class="header-spacer"></div>
+  <button class="gist-btn" id="settingsBtn" title="Настройки">&#9881;</button>
   <button class="gist-btn" id="gistSyncBtn" title="Синхронизировать с Gist">&#8646; Синхр.</button>
   <button class="gist-btn" id="gistBtn" title="GitHub Gist синхронизация">&#9741; Gist</button>
   <button class="import-btn" id="exportBtn">&#8682; Экспорт JSON</button>
@@ -849,6 +854,52 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="gistCancel">Отмена</button>
       <button class="btn-primary" id="gistSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно настроек -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Настройки</h2>
+    <div class="field">
+      <label>Тема оформления</label>
+      <select id="setTheme">
+        <option value="light">Светлая</option>
+        <option value="dark">Тёмная</option>
+        <option value="auto">Системная</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Первый день недели</label>
+      <select id="setFirstDay">
+        <option value="1">Понедельник</option>
+        <option value="0">Воскресенье</option>
+        <option value="6">Суббота</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Выходные</label>
+      <select id="setWeekend">
+        <option value="5,6">Суббота и воскресенье</option>
+        <option value="6">Только воскресенье</option>
+        <option value="0">Суббота и понедельник</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Формат времени</label>
+      <select id="setTimeFormat">
+        <option value="24">24-часовой</option>
+        <option value="12">12-часовой (AM/PM)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Высота часа (px)</label>
+      <input type="range" id="setHourHeight" min="40" max="100" value="56">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="settingsCancel">Отмена</button>
+      <button class="btn-primary" id="settingsSave">Сохранить</button>
     </div>
   </div>
 </div>
@@ -1047,37 +1098,49 @@ function layoutEvents(events) {
   const result = new Map();
   if (events.length === 0) return result;
 
-  // Группируем пересекающиеся события
-  const groups = [];
-  let currentGroup = [events[0]];
-  for (let i = 1; i < events.length; i++) {
-    const prev = currentGroup[currentGroup.length - 1];
-    if (events[i].start < prev.end) {
-      currentGroup.push(events[i]);
-    } else {
-      groups.push(currentGroup);
-      currentGroup = [events[i]];
-    }
-  }
-  groups.push(currentGroup);
-
-  // Для каждой группы определяем колонки
-  for (const group of groups) {
-    const cols = new Array(group.length).fill(false);
-    for (let i = 0; i < group.length; i++) {
-      // Находим свободную колонку
-      let col = 0;
-      while (col < cols.length && cols[col]) col++;
-      cols[col] = true;
-      result.set(group[i].id, { x: col, total: group.length });
-      // Освобождаем колонку, если событие закончилось
-      for (let j = 0; j < group.length; j++) {
-        if (j !== i && group[j].end <= group[i].start) {
-          // Нужно пересчитать, но для простоты оставляем как есть
-        }
+  // Сортируем по времени начала
+  const sorted = [...events].sort((a, b) => a.start - b.start);
+  
+  // Алгоритм: для каждого события находим минимальную свободную колонку
+  // с учётом всех пересекающихся с ним событий
+  const activeEvents = []; // {end, col}
+  
+  for (const e of sorted) {
+    // Удаляем завершённые события
+    for (let i = activeEvents.length - 1; i >= 0; i--) {
+      if (activeEvents[i].end <= e.start) {
+        activeEvents.splice(i, 1);
       }
     }
+    
+    // Находим минимальную свободную колонку
+    const usedCols = new Set(activeEvents.map(a => a.col));
+    let col = 0;
+    while (usedCols.has(col)) col++;
+    
+    result.set(e.id, { x: col, total: 0 }); // total обновим позже
+    activeEvents.push({ end: e.end, col });
   }
+  
+  // Вычисляем максимальное количество колонок для каждой группы пересекающихся
+  const colCount = new Map();
+  for (const e of sorted) {
+    const info = result.get(e.id);
+    // Считаем сколько событий пересекается с данным
+    let maxCol = info.x;
+    for (const other of sorted) {
+      if (other.id !== e.id && other.start < e.end && e.start < other.end) {
+        const otherInfo = result.get(other.id);
+        if (otherInfo.x > maxCol) maxCol = otherInfo.x;
+      }
+    }
+    colCount.set(e.id, maxCol + 1);
+  }
+  
+  for (const [id, total] of colCount) {
+    result.get(id).total = total;
+  }
+  
   return result;
 }
 
@@ -1133,7 +1196,6 @@ function renderMonth() {
       render();
     };
     cell.addEventListener("click", select);
-    cell.addEventListener("touchstart", select, { passive: true });
   });
 }
 
@@ -1183,7 +1245,6 @@ function renderWeek() {
       render();
     };
     col.addEventListener("click", select);
-    col.addEventListener("touchstart", select, { passive: true });
   });
 }
 
@@ -1223,7 +1284,6 @@ function renderDay() {
       render();
     };
     col.addEventListener("click", select);
-    col.addEventListener("touchstart", select, { passive: true });
   });
 }
 
@@ -1504,6 +1564,78 @@ document.getElementById("panelCloseBtn").addEventListener("click", () => {
 document.getElementById("panelAddBtn").addEventListener("click", () => {
   openModal(state.selected || state.anchor);
 });
+
+/* ================= НАСТРОЙКИ ================= */
+const SETTINGS_KEY = "calendar_settings_v1";
+let settings = {
+  theme: "auto",
+  firstDay: 1,
+  weekend: "5,6",
+  timeFormat: "24",
+  hourHeight: 56,
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) settings = { ...settings, ...JSON.parse(raw) };
+  } catch (e) { /* ignore */ }
+  applySettings();
+}
+
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  applySettings();
+}
+
+function applySettings() {
+  // Тема
+  const root = document.documentElement;
+  if (settings.theme === "dark") {
+    root.style.colorScheme = "dark";
+  } else if (settings.theme === "light") {
+    root.style.colorScheme = "light";
+  } else {
+    root.style.colorScheme = "";
+  }
+  // Высота часа
+  root.style.setProperty("--hour-height", settings.hourHeight + "px");
+  render();
+}
+
+loadSettings();
+
+/* ================= GIST UI ================= */
+const gistModal = document.getElementById("gistModal");
+
+/* ================= НАСТРОЙКИ UI ================= */
+const settingsModal = document.getElementById("settingsModal");
+
+document.getElementById("settingsBtn").addEventListener("click", () => {
+  document.getElementById("setTheme").value = settings.theme;
+  document.getElementById("setFirstDay").value = settings.firstDay;
+  document.getElementById("setWeekend").value = settings.weekend;
+  document.getElementById("setTimeFormat").value = settings.timeFormat;
+  document.getElementById("setHourHeight").value = settings.hourHeight;
+  settingsModal.classList.add("open");
+});
+
+document.getElementById("settingsSave").addEventListener("click", () => {
+  settings.theme = document.getElementById("setTheme").value;
+  settings.firstDay = parseInt(document.getElementById("setFirstDay").value);
+  settings.weekend = document.getElementById("setWeekend").value;
+  settings.timeFormat = document.getElementById("setTimeFormat").value;
+  settings.hourHeight = parseInt(document.getElementById("setHourHeight").value);
+  saveSettings();
+  settingsModal.classList.remove("open");
+  showToast("Настройки сохранены");
+});
+
+document.getElementById("settingsCancel").addEventListener("click", () => {
+  settingsModal.classList.remove("open");
+});
+
+settingsModal.addEventListener("click", e => { if (e.target === settingsModal) settingsModal.classList.remove("open"); });
 
 /* ================= GIST UI ================= */
 const gistModal = document.getElementById("gistModal");
