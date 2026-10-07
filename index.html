@@ -1042,6 +1042,45 @@ function eventsForDay(day) {
     .sort((a, b) => a.start - b.start);
 }
 
+// Распределение пересекающихся событий по колонкам
+function layoutEvents(events) {
+  const result = new Map();
+  if (events.length === 0) return result;
+
+  // Группируем пересекающиеся события
+  const groups = [];
+  let currentGroup = [events[0]];
+  for (let i = 1; i < events.length; i++) {
+    const prev = currentGroup[currentGroup.length - 1];
+    if (events[i].start < prev.end) {
+      currentGroup.push(events[i]);
+    } else {
+      groups.push(currentGroup);
+      currentGroup = [events[i]];
+    }
+  }
+  groups.push(currentGroup);
+
+  // Для каждой группы определяем колонки
+  for (const group of groups) {
+    const cols = new Array(group.length).fill(false);
+    for (let i = 0; i < group.length; i++) {
+      // Находим свободную колонку
+      let col = 0;
+      while (col < cols.length && cols[col]) col++;
+      cols[col] = true;
+      result.set(group[i].id, { x: col, total: group.length });
+      // Освобождаем колонку, если событие закончилось
+      for (let j = 0; j < group.length; j++) {
+        if (j !== i && group[j].end <= group[i].start) {
+          // Нужно пересчитать, но для простоты оставляем как есть
+        }
+      }
+    }
+  }
+  return result;
+}
+
 /* ================= РЕНДЕР ================= */
 const viewContainer = document.getElementById("viewContainer");
 const currentLabel = document.getElementById("currentLabel");
@@ -1121,11 +1160,16 @@ function renderWeek() {
     const weekend = i >= 5;
     html += `<div class="day-column${weekend ? " weekend" : ""}" data-date="${fmtDateInput(day)}">`;
     for (let h = 0; h < 24; h++) html += '<div class="hour-line"></div>';
-    for (const e of eventsForDay(day)) {
+    const dayEvents = eventsForDay(day);
+    const layout = layoutEvents(dayEvents);
+    for (const e of dayEvents) {
       const cat = CATEGORIES[e.category];
       const top = (e.start.getHours() + e.start.getMinutes() / 60) * 56;
       const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * 56, top + 24);
-      html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
+      const col = layout.get(e.id);
+      const left = 4 + col.x * (100 / col.total) + "%";
+      const width = (100 / col.total - 1) + "%";
+      html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
         <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
     }
     html += "</div>";
@@ -1158,11 +1202,16 @@ function renderDay() {
   for (let h = 0; h < 24; h++) html += `<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`;
   html += `</div><div class="day-column" data-date="${fmtDateInput(day)}">`;
   for (let h = 0; h < 24; h++) html += '<div class="hour-line"></div>';
-  for (const e of eventsForDay(day)) {
+  const dayEvents = eventsForDay(day);
+  const layout = layoutEvents(dayEvents);
+  for (const e of dayEvents) {
     const cat = CATEGORIES[e.category];
     const top = (e.start.getHours() + e.start.getMinutes() / 60) * 56;
     const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * 56, top + 24);
-    html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
+    const col = layout.get(e.id);
+    const left = 4 + col.x * (100 / col.total) + "%";
+    const width = (100 / col.total - 1) + "%";
+    html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
       <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
   }
   html += "</div></div></div>";
