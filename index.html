@@ -761,6 +761,7 @@
     <button class="view-btn active" data-view="month">Месяц</button>
   </div>
   <div class="header-spacer"></div>
+  <button class="gist-btn" id="gistSyncBtn" title="Синхронизировать с Gist">&#8646; Синхр.</button>
   <button class="gist-btn" id="gistBtn" title="GitHub Gist синхронизация">&#9741; Gist</button>
   <button class="import-btn" id="exportBtn">&#8682; Экспорт JSON</button>
   <button class="import-btn" id="importBtn">&#8681; Загрузить файл</button>
@@ -961,9 +962,11 @@ async function gistUpload() {
   gistSyncing = true;
   try {
     const content = JSON.stringify(state.events, null, 2);
+    console.log("[Gist] Uploading", state.events.length, "events to", gistConfig.id);
     await gistRequest("PATCH", "/gists/" + gistConfig.id, {
       files: { [GIST_FILE_NAME]: { content } },
     });
+    console.log("[Gist] Upload success");
     showToast("Синхронизировано с Gist");
   } catch (e) {
     console.error("Gist upload error:", e);
@@ -976,9 +979,13 @@ async function gistUpload() {
 async function gistDownload() {
   if (!gistConfig.id || !gistConfig.token) return;
   try {
+    console.log("[Gist] Downloading from", gistConfig.id);
     const gist = await gistRequest("GET", "/gists/" + gistConfig.id);
     const file = gist.files && gist.files[GIST_FILE_NAME];
-    if (!file) return;
+    if (!file) {
+      console.warn("[Gist] File not found in gist");
+      return;
+    }
 
     const res = await fetch(file.raw_url);
     const text = await res.text();
@@ -991,6 +998,7 @@ async function gistDownload() {
       end: new Date(e.end),
     })).filter(e => e.title && !isNaN(e.start));
 
+    console.log("[Gist] Downloaded", events.length, "events");
     if (events.length > 0) {
       state.events = events;
       saveEvents();
@@ -1451,6 +1459,17 @@ document.getElementById("gistBtn").addEventListener("click", () => {
   document.getElementById("gistToken").value = gistConfig.token || "";
   gistModal.classList.add("open");
   setTimeout(() => document.getElementById("gistId").focus(), 150);
+});
+
+document.getElementById("gistSyncBtn").addEventListener("click", async () => {
+  if (!gistConfig.id || !gistConfig.token) {
+    showToast("Сначала настройте Gist");
+    return;
+  }
+  showToast("Синхронизация...");
+  await gistDownload();
+  await gistUpload();
+  showToast("Синхронизация завершена");
 });
 
 document.getElementById("gistSave").addEventListener("click", () => {
