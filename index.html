@@ -309,7 +309,7 @@
     flex-direction: column;
   }
   .hour-label {
-    height: 56px;
+    height: var(--hour-height, 56px);
     font-size: 11px;
     color: var(--text-muted);
     text-align: right;
@@ -330,7 +330,7 @@
   .day-column.weekend { background: #faf7fe; }
 
   .hour-line {
-    height: 56px;
+    height: var(--hour-height, 56px);
     border-bottom: 1px solid rgba(139, 92, 246, 0.07);
   }
 
@@ -1082,7 +1082,15 @@ const DOW = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
 const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const isSameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 const addDays = (d, n) => { const t = new Date(d); t.setDate(t.getDate() + n); return t; };
-const fmtTime = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+const fmtTime = d => {
+  if (settings.timeFormat === "12") {
+    const h = d.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    return h12 + ":" + String(d.getMinutes()).padStart(2, "0") + " " + ampm;
+  }
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+};
 const fmtDayTitle = d => d.getDate() + " " + MONTHS_GEN[d.getMonth()] + ", " + DOW[(d.getDay() + 6) % 7];
 const fmtDateInput = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 
@@ -1161,13 +1169,12 @@ function renderMonth() {
   currentLabel.textContent = MONTHS[month] + " " + year;
 
   const first = new Date(year, month, 1);
-  // Пн = 0 ... Вс = 6
-  const lead = (first.getDay() + 6) % 7;
+  const lead = (first.getDay() - settings.firstDay + 7) % 7;
   const startDate = addDays(first, -lead);
   const today = startOfDay(new Date());
 
   let html = '<div class="month-grid">';
-  for (let c = 0; c < 7; c++) html += `<div class="weekday-header">${DOW[c]}</div>`;
+  for (let c = 0; c < 7; c++) html += `<div class="weekday-header">${DOW[(settings.firstDay + c) % 7]}</div>`;
 
   for (let i = 0; i < 42; i++) {
     const day = addDays(startDate, i);
@@ -1200,34 +1207,35 @@ function renderMonth() {
 }
 
 function renderWeek() {
-  const monday = addDays(startOfDay(state.anchor), -((state.anchor.getDay() + 6) % 7));
-  const sunday = addDays(monday, 6);
-  currentLabel.textContent = monday.getDate() + " " + MONTHS_GEN[monday.getMonth()] + " — " + sunday.getDate() + " " + MONTHS_GEN[sunday.getMonth()];
+  const startOfWeek = addDays(startOfDay(state.anchor), -((state.anchor.getDay() - settings.firstDay + 7) % 7));
+  const endOfWeek = addDays(startOfWeek, 6);
+  currentLabel.textContent = startOfWeek.getDate() + " " + MONTHS_GEN[startOfWeek.getMonth()] + " — " + endOfWeek.getDate() + " " + MONTHS_GEN[endOfWeek.getMonth()];
 
   const today = startOfDay(new Date());
+  const weekendDays = settings.weekend.split(",").map(Number);
   let html = '<div class="time-grid-wrapper"><div class="time-grid-header" style="--cols:7"><div></div>';
   for (let i = 0; i < 7; i++) {
-    const day = addDays(monday, i);
+    const day = addDays(startOfWeek, i);
     const isToday = isSameDay(day, today);
     const isSelected = state.selected && isSameDay(day, state.selected);
     html += `<div class="day-col-header${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${fmtDateInput(day)}">
-      <div class="dow-name">${DOW[i]}</div><div class="dow-num">${day.getDate()}</div></div>`;
+      <div class="dow-name">${DOW[(settings.firstDay + i) % 7]}</div><div class="dow-num">${day.getDate()}</div></div>`;
   }
   html += '</div><div class="time-grid-body" style="--cols:7"><div class="hour-labels">';
   for (let h = 0; h < 24; h++) html += `<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`;
   html += "</div>";
 
   for (let i = 0; i < 7; i++) {
-    const day = addDays(monday, i);
-    const weekend = i >= 5;
+    const day = addDays(startOfWeek, i);
+    const weekend = weekendDays.includes(day.getDay());
     html += `<div class="day-column${weekend ? " weekend" : ""}" data-date="${fmtDateInput(day)}">`;
     for (let h = 0; h < 24; h++) html += '<div class="hour-line"></div>';
     const dayEvents = eventsForDay(day);
     const layout = layoutEvents(dayEvents);
     for (const e of dayEvents) {
       const cat = CATEGORIES[e.category];
-      const top = (e.start.getHours() + e.start.getMinutes() / 60) * 56;
-      const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * 56, top + 24);
+      const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
+      const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
       const col = layout.get(e.id);
       const left = 4 + col.x * (100 / col.total) + "%";
       const width = (100 / col.total - 1) + "%";
@@ -1267,8 +1275,8 @@ function renderDay() {
   const layout = layoutEvents(dayEvents);
   for (const e of dayEvents) {
     const cat = CATEGORIES[e.category];
-    const top = (e.start.getHours() + e.start.getMinutes() / 60) * 56;
-    const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * 56, top + 24);
+    const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
+    const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
     const col = layout.get(e.id);
     const left = 4 + col.x * (100 / col.total) + "%";
     const width = (100 / col.total - 1) + "%";
