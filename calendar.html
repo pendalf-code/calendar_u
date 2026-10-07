@@ -147,6 +147,24 @@
   }
   .import-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45); }
 
+  .gist-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s var(--ease-smooth);
+  }
+  .gist-btn:hover { background: var(--surface-2); border-color: var(--c-purple-soft); }
+  .gist-btn.connected {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    border-color: transparent;
+  }
+
   /* ============ ОСНОВНАЯ ОБЛАСТЬ ============ */
   .main {
     flex: 1;
@@ -743,6 +761,7 @@
     <button class="view-btn active" data-view="month">Месяц</button>
   </div>
   <div class="header-spacer"></div>
+  <button class="gist-btn" id="gistBtn" title="GitHub Gist синхронизация">&#9741; Gist</button>
   <button class="import-btn" id="exportBtn">&#8682; Экспорт JSON</button>
   <button class="import-btn" id="importBtn">&#8681; Загрузить файл</button>
   <input type="file" id="fileInput" accept=".ics,.json,.csv" hidden>
@@ -810,6 +829,29 @@
   </div>
 </div>
 
+<!-- Модальное окно настроек Gist -->
+<div class="modal-overlay" id="gistModal">
+  <div class="modal">
+    <h2>GitHub Gist синхронизация</h2>
+    <div class="field">
+      <label>Gist ID</label>
+      <input type="text" id="gistId" placeholder="например, a1b2c3d4e5f6...">
+    </div>
+    <div class="field">
+      <label>Personal Access Token</label>
+      <input type="password" id="gistToken" placeholder="ghp_...">
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:-6px;margin-bottom:14px;">
+      Токен хранится только в вашем браузере (localStorage). Создайте токен с правами <code>gist</code> на
+      <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--c-purple);">github.com/settings/tokens</a>.
+    </p>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="gistCancel">Отмена</button>
+      <button class="btn-primary" id="gistSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -841,6 +883,7 @@ function saveEvents() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
   } catch (e) { /* приватный режим и т.п. */ }
+  scheduleGistSync();
 }
 
 function loadEvents() {
@@ -858,6 +901,119 @@ function loadEvents() {
 }
 
 loadEvents();
+
+/* ================= GIST СИНХРОНИЗАЦИЯ ================= */
+const GIST_STORAGE_KEY = "calendar_gist_config_v1";
+const GIST_FILE_NAME = "calendar-events.json";
+
+let gistConfig = { id: "", token: "" };
+let gistSyncTimer = null;
+let gistSyncing = false;
+
+function loadGistConfig() {
+  try {
+    const raw = localStorage.getItem(GIST_STORAGE_KEY);
+    if (raw) gistConfig = JSON.parse(raw);
+  } catch (e) { /* ignore */ }
+  updateGistButton();
+}
+
+function saveGistConfig() {
+  localStorage.setItem(GIST_STORAGE_KEY, JSON.stringify(gistConfig));
+  updateGistButton();
+}
+
+function updateGistButton() {
+  const btn = document.getElementById("gistBtn");
+  if (gistConfig.id && gistConfig.token) {
+    btn.classList.add("connected");
+    btn.innerHTML = "&#10003; Gist";
+    btn.title = "Синхронизировано с Gist";
+  } else {
+    btn.classList.remove("connected");
+    btn.innerHTML = "&#9741; Gist";
+    btn.title = "Настроить GitHub Gist синхронизацию";
+  }
+}
+
+async function gistRequest(method, url, body) {
+  const headers = {
+    "Accept": "application/vnd.github.v3+json",
+    "Content-Type": "application/json",
+  };
+  if (gistConfig.token) headers["Authorization"] = "token " + gistConfig.token;
+
+  const res = await fetch("https://api.github.com" + url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || ("HTTP " + res.status));
+  }
+  return res.json();
+}
+
+async function gistUpload() {
+  if (!gistConfig.id || !gistConfig.token || gistSyncing) return;
+  gistSyncing = true;
+  try {
+    const content = JSON.stringify(state.events, null, 2);
+    await gistRequest("PATCH", "/gists/" + gistConfig.id, {
+      files: { [GIST_FILE_NAME]: { content } },
+    });
+    showToast("Синхронизировано с Gist");
+  } catch (e) {
+    console.error("Gist upload error:", e);
+    showToast("Ошибка загрузки в Gist: " + e.message);
+  } finally {
+    gistSyncing = false;
+  }
+}
+
+async function gistDownload() {
+  if (!gistConfig.id || !gistConfig.token) return;
+  try {
+    const gist = await gistRequest("GET", "/gists/" + gistConfig.id);
+    const file = gist.files && gist.files[GIST_FILE_NAME];
+    if (!file) return;
+
+    const res = await fetch(file.raw_url);
+    const text = await res.text();
+    const arr = JSON.parse(text);
+    if (!Array.isArray(arr)) return;
+
+    const events = arr.map(e => ({
+      ...e,
+      start: new Date(e.start),
+      end: new Date(e.end),
+    })).filter(e => e.title && !isNaN(e.start));
+
+    if (events.length > 0) {
+      state.events = events;
+      saveEvents();
+      render();
+      showToast("Загружено из Gist: " + events.length + " событий");
+    }
+  } catch (e) {
+    console.error("Gist download error:", e);
+    // Не показываем ошибку при автозагрузке — молча пропускаем
+  }
+}
+
+function scheduleGistSync() {
+  if (!gistConfig.id || !gistConfig.token) return;
+  clearTimeout(gistSyncTimer);
+  gistSyncTimer = setTimeout(gistUpload, 2000); // debounce 2 секунды
+}
+
+// Загрузка из Gist при старте
+loadGistConfig();
+if (gistConfig.id && gistConfig.token) {
+  gistDownload();
+}
 
 /* ================= УТИЛИТЫ ================= */
 const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
@@ -1286,6 +1442,33 @@ document.getElementById("panelCloseBtn").addEventListener("click", () => {
 document.getElementById("panelAddBtn").addEventListener("click", () => {
   openModal(state.selected || state.anchor);
 });
+
+/* ================= GIST UI ================= */
+const gistModal = document.getElementById("gistModal");
+
+document.getElementById("gistBtn").addEventListener("click", () => {
+  document.getElementById("gistId").value = gistConfig.id || "";
+  document.getElementById("gistToken").value = gistConfig.token || "";
+  gistModal.classList.add("open");
+  setTimeout(() => document.getElementById("gistId").focus(), 150);
+});
+
+document.getElementById("gistSave").addEventListener("click", () => {
+  gistConfig.id = document.getElementById("gistId").value.trim();
+  gistConfig.token = document.getElementById("gistToken").value.trim();
+  saveGistConfig();
+  gistModal.classList.remove("open");
+  if (gistConfig.id && gistConfig.token) {
+    gistUpload();
+  }
+  showToast(gistConfig.id ? "Gist подключён" : "Gist отключён");
+});
+
+document.getElementById("gistCancel").addEventListener("click", () => {
+  gistModal.classList.remove("open");
+});
+
+gistModal.addEventListener("click", e => { if (e.target === gistModal) gistModal.classList.remove("open"); });
 
 /* ================= ТОСТ ================= */
 const toast = document.getElementById("toast");
