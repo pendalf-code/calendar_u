@@ -901,7 +901,7 @@ function loadEvents() {
   } catch (e) { /* повреждённые данные — начинаем с чистого листа */ }
 }
 
-loadEvents();
+safeLoadEvents();
 
 /* ================= GIST СИНХРОНИЗАЦИЯ ================= */
 const GIST_STORAGE_KEY = "calendar_gist_config_v1";
@@ -1300,7 +1300,7 @@ fileInput.addEventListener("change", () => {
       const ext = file.name.split(".").pop().toLowerCase();
       let imported = [];
       if (ext === "ics") imported = parseICS(reader.result);
-      else if (ext === "json") imported = parseJSON(reader.result);
+      else if (ext === "json") imported = safeParseJSON(reader.result);
       else if (ext === "csv") imported = parseCSV(reader.result);
       else { showToast("Формат не поддерживается: ." + ext); return; }
 
@@ -1332,7 +1332,10 @@ function parseICS(text) {
   for (const line of lines) {
     if (line === "BEGIN:VEVENT") cur = {};
     else if (line === "END:VEVENT") {
-      if (cur && cur.DTSTART) events.push(icsToEvent(cur));
+      if (cur && cur.DTSTART) {
+        const ev = icsToEvent(cur);
+        if (ev) events.push(ev);
+      }
       cur = null;
     } else if (cur) {
       const idx = line.indexOf(":");
@@ -1346,8 +1349,9 @@ function parseICS(text) {
 
 function icsToEvent(v) {
   const start = icsDate(v.DTSTART);
+  if (isNaN(start)) return null;
   const end = v.DTEND ? icsDate(v.DTEND) : new Date(start.getTime() + 3600000);
-  const summary = (v.SUMMARY || "Без названия").replace(/\\,/g, ",").replace(/\\;/g, ";");
+  const summary = (v.SUMMARY || "Без названия").replace(/\\,/g, ",").replace(/\\;/g, ";").slice(0, 200);
   const haystack = summary + (v.DESCRIPTION || "");
   const cat = /тренир|спорт|врач|стомат|здоров/i.test(haystack) ? "pink"
     : /дедлайн|важн|срочн/i.test(haystack) ? "amber"
@@ -1355,8 +1359,8 @@ function icsToEvent(v) {
     : "lavender";
   return {
     id: uid(), title: summary, start, end,
-    location: (v.LOCATION || "").replace(/\\,/g, ","),
-    description: (v.DESCRIPTION || "").replace(/\\n/g, " "),
+    location: (v.LOCATION || "").replace(/\\,/g, ",").slice(0, 500),
+    description: (v.DESCRIPTION || "").replace(/\\n/g, " ").slice(0, 2000),
     category: cat,
   };
 }
@@ -1404,13 +1408,14 @@ function parseCSV(text) {
     const endRaw = c[idx("end")] || c[idx("dtend")];
     const end = endRaw ? new Date(endRaw) : new Date(start.getTime() + 3600000);
     const catRaw = (c[idx("category")] || "").toLowerCase();
+    const validCats = ["purple", "amber", "pink", "lavender", "peach"];
     events.push({
       id: uid(),
-      title: c[idx("title")] || c[idx("summary")] || "Без названия",
+      title: String(c[idx("title")] || c[idx("summary")] || "Без названия").slice(0, 200),
       start, end,
-      location: c[idx("location")] || "",
-      description: c[idx("description")] || "",
-      category: CATEGORIES[catRaw] ? catRaw : "lavender",
+      location: String(c[idx("location")] || "").slice(0, 500),
+      description: String(c[idx("description")] || "").slice(0, 2000),
+      category: validCats.includes(catRaw) ? catRaw : "lavender",
     });
   }
   return events;
@@ -1506,6 +1511,64 @@ function parseDateInput(s) {
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+/* ================= ЗАЩИТА ОТ ИНЪЕКЦИЙ ================= */
+
+// Очистка объекта от prototype pollution
+function sanitizeObject(obj) {
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  const clean = {};
+  for (const key of Object.keys(obj)) {
+    // Пропустить опасные ключи
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    clean[key] = sanitizeObject(obj[key]);
+  }
+  return clean;
+}
+
+// Валидация события
+function validateEvent(e) {
+  if (!e || typeof e !== "object") return null;
+  const title = String(e.title || "").trim().slice(0, 200);
+  if (!title) return null;
+  const start = new Date(e.start);
+  const end = new Date(e.end || start.getTime() + 3600000);
+  if (isNaN(start)) return null;
+  const validCats = ["purple", "amber", "pink", "lavender", "peach"];
+  return {
+    id: String(e.id || uid()).slice(0, 50),
+    title,
+    start, end,
+    location: String(e.location || "").slice(0, 500),
+    description: String(e.description || "").slice(0, 2000),
+    category: validCats.includes(e.category) ? e.category : "lavender",
+  };
+}
+
+// Безопасная загрузка событий из localStorage
+function safeLoadEvents() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    const sanitized = sanitizeObject(arr);
+    state.events = sanitized.map(validateEvent).filter(Boolean);
+  } catch (e) { /* повреждённые данные — начинаем с чистого листа */ }
+}
+
+// Безопасный импорт файлов
+function safeParseJSON(text) {
+  try {
+    const data = JSON.parse(text);
+    const arr = Array.isArray(data) ? data : (data.events || []);
+    const sanitized = sanitizeObject(arr);
+    return sanitized.map(validateEvent).filter(Boolean);
+  } catch (e) {
+    return [];
+  }
 }
 
 render();
