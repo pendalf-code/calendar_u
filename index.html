@@ -535,10 +535,22 @@
   .field select {
     appearance: none;
     -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b7fa3' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
     cursor: pointer;
+  }
+  .select-wrapper {
+    position: relative;
+  }
+  .select-wrapper::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 8px;
+    background: var(--text-muted);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    pointer-events: none;
   }
   .field textarea {
     resize: vertical;
@@ -851,9 +863,9 @@
 <header class="app-header">
   <div class="app-title"><span class="dot"></span>Календарь</div>
   <div class="nav-group">
-    <button class="nav-btn" id="prevBtn" title="Назад">&#8249;</button>
+    <button class="nav-btn" id="prevBtn" title="Назад"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="today-btn" id="todayBtn">Сегодня</button>
-    <button class="nav-btn" id="nextBtn" title="Вперёд">&#8250;</button>
+    <button class="nav-btn" id="nextBtn" title="Вперёд"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
   <div class="current-label" id="currentLabel"></div>
   <div class="view-switch">
@@ -972,37 +984,45 @@
     <h2>Настройки</h2>
     <div class="field">
       <label>Тема оформления</label>
-      <select id="setTheme">
-        <option value="auto">Системная</option>
-        <option value="light">Светлая</option>
-        <option value="dark">Тёмная</option>
-        <option value="sepia">Сепия</option>
-        <option value="ocean">Океан</option>
-        <option value="forest">Лесная</option>
-      </select>
+      <div class="select-wrapper">
+        <select id="setTheme">
+          <option value="auto">Системная</option>
+          <option value="light">Светлая</option>
+          <option value="dark">Тёмная</option>
+          <option value="sepia">Сепия</option>
+          <option value="ocean">Океан</option>
+          <option value="forest">Лесная</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Первый день недели</label>
-      <select id="setFirstDay">
-        <option value="1">Понедельник</option>
-        <option value="0">Воскресенье</option>
-        <option value="6">Суббота</option>
-      </select>
+      <div class="select-wrapper">
+        <select id="setFirstDay">
+          <option value="1">Понедельник</option>
+          <option value="0">Воскресенье</option>
+          <option value="6">Суббота</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Выходные</label>
-      <select id="setWeekend">
-        <option value="5,6">Суббота и воскресенье</option>
-        <option value="6">Только воскресенье</option>
-        <option value="0">Суббота и понедельник</option>
-      </select>
+      <div class="select-wrapper">
+        <select id="setWeekend">
+          <option value="5,6">Суббота и воскресенье</option>
+          <option value="6">Только воскресенье</option>
+          <option value="0">Суббота и понедельник</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Формат времени</label>
-      <select id="setTimeFormat">
-        <option value="24">24-часовой</option>
-        <option value="12">12-часовой (AM/PM)</option>
-      </select>
+      <div class="select-wrapper">
+        <select id="setTimeFormat">
+          <option value="24">24-часовой</option>
+          <option value="12">12-часовой (AM/PM)</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="settingsCancel">Отмена</button>
