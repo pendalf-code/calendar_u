@@ -818,8 +818,19 @@
       </div>
     </div>
     <div class="field">
-      <label>Категория</label>
+      <label>Цвет события</label>
       <div class="cat-picker" id="catPicker"></div>
+    </div>
+    <div class="field">
+      <label>Категория события</label>
+      <select id="evCategory">
+        <option value="Конкурс в Москве">Конкурс в Москве</option>
+        <option value="Выездной конкурс">Выездной конкурс</option>
+        <option value="Внутреннее мероприятие">Внутреннее мероприятие</option>
+        <option value="Выездное мероприятие">Выездное мероприятие</option>
+        <option value="Постановка">Постановка</option>
+        <option value="Прочее">Прочее</option>
+      </select>
     </div>
     <div class="field">
       <label>Место</label>
@@ -1048,6 +1059,7 @@ async function gistDownload() {
       ...e,
       start: new Date(e.start),
       end: new Date(e.end),
+      eventCategory: e.eventCategory || "Прочее",
     })).filter(e => e.title && !isNaN(e.start));
 
     console.log("[Gist] Downloaded", events.length, "events");
@@ -1325,6 +1337,7 @@ function renderPanel() {
         <div class="event-time">${fmtTime(e.start)} – ${fmtTime(e.end)}</div>
         <div class="event-info">
           <div class="event-title">${escapeHtml(e.title)}</div>
+          ${e.eventCategory ? `<div class="event-meta" style="color:var(--c-purple);font-weight:600;">${escapeHtml(e.eventCategory)}</div>` : ""}
           ${e.location || e.description ? `<div class="event-meta">${escapeHtml([e.location, e.description].filter(Boolean).join(" · "))}</div>` : ""}
         </div>
         <button class="event-del" title="Удалить">&times;</button>`;
@@ -1366,6 +1379,7 @@ function openModal(day) {
   document.getElementById("evEnd").value = "11:00";
   document.getElementById("evLocation").value = "";
   document.getElementById("evDesc").value = "";
+  document.getElementById("evCategory").value = "Конкурс в Москве";
   modalOverlay.classList.add("open");
   setTimeout(() => document.getElementById("evTitle").focus(), 150);
 }
@@ -1386,6 +1400,7 @@ document.getElementById("modalSave").addEventListener("click", () => {
     location: document.getElementById("evLocation").value.trim(),
     description: document.getElementById("evDesc").value.trim(),
     category: pickedCategory,
+    eventCategory: document.getElementById("evCategory").value,
   });
   saveEvents();
   state.selected = startOfDay(start);
@@ -1483,6 +1498,7 @@ function icsToEvent(v) {
     location: (v.LOCATION || "").replace(/\\,/g, ",").slice(0, 500),
     description: (v.DESCRIPTION || "").replace(/\\n/g, " ").slice(0, 2000),
     category: cat,
+    eventCategory: "Прочее",
   };
 }
 
@@ -1500,6 +1516,7 @@ function icsDate(s) {
 function parseJSON(text) {
   const data = JSON.parse(text);
   const arr = Array.isArray(data) ? data : (data.events || []);
+  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
   return arr.map(e => {
     const start = new Date(e.start || e.dtstart);
     const end = new Date(e.end || e.dtend || start.getTime() + 3600000);
@@ -1511,6 +1528,7 @@ function parseJSON(text) {
       location: String(e.location || ""),
       description: String(e.description || ""),
       category: CATEGORIES[e.category] ? e.category : "lavender",
+      eventCategory: validEventCats.includes(e.eventCategory) ? e.eventCategory : "Прочее",
     };
   }).filter(Boolean);
 }
@@ -1522,6 +1540,7 @@ function parseCSV(text) {
   const header = split(lines[0]).map(h => h.toLowerCase());
   const idx = name => header.indexOf(name);
   const events = [];
+  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
   for (let i = 1; i < lines.length; i++) {
     const c = split(lines[i]);
     const start = new Date(c[idx("start")] || c[idx("dtstart")] || c[idx("date")]);
@@ -1530,6 +1549,7 @@ function parseCSV(text) {
     const end = endRaw ? new Date(endRaw) : new Date(start.getTime() + 3600000);
     const catRaw = (c[idx("category")] || "").toLowerCase();
     const validCats = ["purple", "amber", "pink", "lavender", "peach"];
+    const eventCatRaw = c[idx("eventcategory")] || c[idx("event_category")] || "";
     events.push({
       id: uid(),
       title: String(c[idx("title")] || c[idx("summary")] || "Без названия").slice(0, 200),
@@ -1537,6 +1557,7 @@ function parseCSV(text) {
       location: String(c[idx("location")] || "").slice(0, 500),
       description: String(c[idx("description")] || "").slice(0, 2000),
       category: validCats.includes(catRaw) ? catRaw : "lavender",
+      eventCategory: validEventCats.includes(eventCatRaw) ? eventCatRaw : "Прочее",
     });
   }
   return events;
@@ -1725,6 +1746,7 @@ function validateEvent(e) {
   const end = new Date(e.end || start.getTime() + 3600000);
   if (isNaN(start)) return null;
   const validCats = ["purple", "amber", "pink", "lavender", "peach"];
+  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
   return {
     id: String(e.id || uid()).slice(0, 50),
     title,
@@ -1732,6 +1754,7 @@ function validateEvent(e) {
     location: String(e.location || "").slice(0, 500),
     description: String(e.description || "").slice(0, 2000),
     category: validCats.includes(e.category) ? e.category : "lavender",
+    eventCategory: validEventCats.includes(e.eventCategory) ? e.eventCategory : "Прочее",
   };
 }
 
