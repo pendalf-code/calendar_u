@@ -526,11 +526,19 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     color: var(--text);
-    padding: 10px 12px;
+    padding: 10px 36px 10px 12px;
     font-size: 14px;
     font-family: inherit;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b7fa3' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
   }
   .field textarea {
     resize: vertical;
@@ -702,6 +710,37 @@
     .day-num { width: 20px; height: 20px; font-size: 10px; }
   }
 
+  /* Тёмная тема для новых тем (переопределение) */
+  @media (prefers-color-scheme: dark) {
+    [data-theme="sepia"] {
+      --bg: #2a2218;
+      --bg-soft: #332a1e;
+      --surface: #3d3226;
+      --surface-2: #4a3e30;
+      --border: #5a4e3e;
+      --text: #f0e8d8;
+      --text-muted: #a89880;
+    }
+    [data-theme="ocean"] {
+      --bg: #1a2a35;
+      --bg-soft: #223540;
+      --surface: #2a4050;
+      --surface-2: #335060;
+      --border: #406070;
+      --text: #e0f0f8;
+      --text-muted: #80a0b0;
+    }
+    [data-theme="forest"] {
+      --bg: #1a2a1a;
+      --bg-soft: #223522;
+      --surface: #2a402a;
+      --surface-2: #335033;
+      --border: #406040;
+      --text: #e0f0e0;
+      --text-muted: #80a080;
+    }
+  }
+
   /* Ландшафтная ориентация на мобильных */
   @media (max-height: 500px) and (orientation: landscape) {
     .app-header { padding: 6px 12px; }
@@ -726,6 +765,63 @@
     .hour-line { border-bottom-color: rgba(139, 92, 246, 0.1); }
     .field input, .field textarea, .field select { background: #241d3a; }
   }
+
+  /* Сепия */
+  [data-theme="sepia"] {
+    --bg: #f5efe0;
+    --bg-soft: #ede4d0;
+    --surface: #faf5e8;
+    --surface-2: #f0e8d4;
+    --border: #ddd0b8;
+    --text: #4a3f2f;
+    --text-muted: #8a7a60;
+    --c-purple: #a05c2c;
+    --c-purple-soft: #c07a3a;
+    --c-amber: #c49a3a;
+    --c-pink: #c47a6a;
+    --c-lavender: #d4c4a0;
+    --c-peach: #e0c070;
+  }
+  [data-theme="sepia"] .day-column.weekend { background: #f0e8d4; }
+  [data-theme="sepia"] .hour-line { border-bottom-color: rgba(160, 92, 44, 0.08); }
+
+  /* Океан */
+  [data-theme="ocean"] {
+    --bg: #e8f0f5;
+    --bg-soft: #d8e5ee;
+    --surface: #f0f6fa;
+    --surface-2: #e0ecf4;
+    --border: #c0d4e0;
+    --text: #1e3a4a;
+    --text-muted: #5a7a8a;
+    --c-purple: #2a7a9a;
+    --c-purple-soft: #4a9ab5;
+    --c-amber: #3a9a8a;
+    --c-pink: #5a8aaa;
+    --c-lavender: #a0c4d4;
+    --c-peach: #70b0a0;
+  }
+  [data-theme="ocean"] .day-column.weekend { background: #d8e5ee; }
+  [data-theme="ocean"] .hour-line { border-bottom-color: rgba(42, 122, 154, 0.08); }
+
+  /* Лесная */
+  [data-theme="forest"] {
+    --bg: #e8f0e8;
+    --bg-soft: #d8e5d8;
+    --surface: #f0f6f0;
+    --surface-2: #e0ece0;
+    --border: #c0d4c0;
+    --text: #1e3a1e;
+    --text-muted: #5a7a5a;
+    --c-purple: #3a7a3a;
+    --c-purple-soft: #5a9a5a;
+    --c-amber: #6a9a2a;
+    --c-pink: #7a8a4a;
+    --c-lavender: #a0c4a0;
+    --c-peach: #80b060;
+  }
+  [data-theme="forest"] .day-column.weekend { background: #d8e5d8; }
+  [data-theme="forest"] .hour-line { border-bottom-color: rgba(58, 122, 58, 0.08); }
 
   /* Уменьшенная анимация для пользователей с настройкой */
   @media (prefers-reduced-motion: reduce) {
@@ -877,9 +973,12 @@
     <div class="field">
       <label>Тема оформления</label>
       <select id="setTheme">
+        <option value="auto">Системная</option>
         <option value="light">Светлая</option>
         <option value="dark">Тёмная</option>
-        <option value="auto">Системная</option>
+        <option value="sepia">Сепия</option>
+        <option value="ocean">Океан</option>
+        <option value="forest">Лесная</option>
       </select>
     </div>
     <div class="field">
@@ -904,10 +1003,6 @@
         <option value="24">24-часовой</option>
         <option value="12">12-часовой (AM/PM)</option>
       </select>
-    </div>
-    <div class="field">
-      <label>Высота часа (px)</label>
-      <input type="range" id="setHourHeight" min="40" max="100" value="56">
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="settingsCancel">Отмена</button>
@@ -1605,7 +1700,6 @@ let settings = {
   firstDay: 1,
   weekend: "5,6",
   timeFormat: "24",
-  hourHeight: 56,
 };
 
 function loadSettings() {
@@ -1626,13 +1720,17 @@ function applySettings() {
   const root = document.documentElement;
   if (settings.theme === "dark") {
     root.style.colorScheme = "dark";
+    root.removeAttribute("data-theme");
   } else if (settings.theme === "light") {
     root.style.colorScheme = "light";
+    root.removeAttribute("data-theme");
+  } else if (settings.theme === "sepia" || settings.theme === "ocean" || settings.theme === "forest") {
+    root.style.colorScheme = "light";
+    root.setAttribute("data-theme", settings.theme);
   } else {
     root.style.colorScheme = "";
+    root.removeAttribute("data-theme");
   }
-  // Высота часа
-  root.style.setProperty("--hour-height", settings.hourHeight + "px");
   if (typeof render === "function") render();
 }
 
@@ -1644,7 +1742,6 @@ document.getElementById("settingsBtn").addEventListener("click", () => {
   document.getElementById("setFirstDay").value = settings.firstDay;
   document.getElementById("setWeekend").value = settings.weekend;
   document.getElementById("setTimeFormat").value = settings.timeFormat;
-  document.getElementById("setHourHeight").value = settings.hourHeight;
   settingsModal.classList.add("open");
 });
 
@@ -1653,7 +1750,6 @@ document.getElementById("settingsSave").addEventListener("click", () => {
   settings.firstDay = parseInt(document.getElementById("setFirstDay").value);
   settings.weekend = document.getElementById("setWeekend").value;
   settings.timeFormat = document.getElementById("setTimeFormat").value;
-  settings.hourHeight = parseInt(document.getElementById("setHourHeight").value);
   saveSettings();
   settingsModal.classList.remove("open");
   showToast("Настройки сохранены");
