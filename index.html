@@ -1104,49 +1104,52 @@ function eventsForDay(day) {
 // Распределение пересекающихся событий по колонкам
 function layoutEvents(events) {
   const result = new Map();
-  if (events.length === 0) return result;
+  if (!events || events.length === 0) return result;
 
-  // Сортируем по времени начала
-  const sorted = [...events].sort((a, b) => a.start - b.start);
-  
-  // Алгоритм: для каждого события находим минимальную свободную колонку
-  // с учётом всех пересекающихся с ним событий
-  const activeEvents = []; // {end, col}
-  
-  for (const e of sorted) {
-    // Удаляем завершённые события
-    for (let i = activeEvents.length - 1; i >= 0; i--) {
-      if (activeEvents[i].end <= e.start) {
-        activeEvents.splice(i, 1);
+  try {
+    // Сортируем по времени начала
+    const sorted = [...events].sort((a, b) => a.start - b.start);
+    
+    // Алгоритм: для каждого события находим минимальную свободную колонку
+    // с учётом всех пересекающихся с ним событий
+    const activeEvents = []; // {end, col}
+    
+    for (const e of sorted) {
+      // Удаляем завершённые события
+      for (let i = activeEvents.length - 1; i >= 0; i--) {
+        if (activeEvents[i].end <= e.start) {
+          activeEvents.splice(i, 1);
+        }
       }
+      
+      // Находим минимальную свободную колонку
+      const usedCols = new Set(activeEvents.map(a => a.col));
+      let col = 0;
+      while (usedCols.has(col)) col++;
+      
+      result.set(e.id, { x: col, total: 1 });
+      activeEvents.push({ end: e.end, col });
     }
     
-    // Находим минимальную свободную колонку
-    const usedCols = new Set(activeEvents.map(a => a.col));
-    let col = 0;
-    while (usedCols.has(col)) col++;
-    
-    result.set(e.id, { x: col, total: 0 }); // total обновим позже
-    activeEvents.push({ end: e.end, col });
-  }
-  
-  // Вычисляем максимальное количество колонок для каждой группы пересекающихся
-  const colCount = new Map();
-  for (const e of sorted) {
-    const info = result.get(e.id);
-    // Считаем сколько событий пересекается с данным
-    let maxCol = info.x;
-    for (const other of sorted) {
-      if (other.id !== e.id && other.start < e.end && e.start < other.end) {
-        const otherInfo = result.get(other.id);
-        if (otherInfo.x > maxCol) maxCol = otherInfo.x;
+    // Вычисляем максимальное количество колонок для каждой группы пересекающихся
+    for (const e of sorted) {
+      const info = result.get(e.id);
+      if (!info) continue;
+      let maxCol = info.x;
+      for (const other of sorted) {
+        if (other.id !== e.id && other.start < e.end && e.start < other.end) {
+          const otherInfo = result.get(other.id);
+          if (otherInfo && otherInfo.x > maxCol) maxCol = otherInfo.x;
+        }
       }
+      info.total = maxCol + 1;
     }
-    colCount.set(e.id, maxCol + 1);
-  }
-  
-  for (const [id, total] of colCount) {
-    result.get(id).total = total;
+  } catch (e) {
+    console.error("layoutEvents error:", e);
+    // Fallback: все события в одной колонке
+    for (const e of events) {
+      result.set(e.id, { x: 0, total: 1 });
+    }
   }
   
   return result;
@@ -1608,10 +1611,8 @@ function applySettings() {
   }
   // Высота часа
   root.style.setProperty("--hour-height", settings.hourHeight + "px");
-  render();
+  if (typeof render === "function") render();
 }
-
-loadSettings();
 
 /* ================= GIST UI ================= */
 const gistModal = document.getElementById("gistModal");
@@ -1760,6 +1761,7 @@ function safeParseJSON(text) {
   }
 }
 
+loadSettings();
 render();
 </script>
 </body>
