@@ -1354,11 +1354,11 @@ function layoutEvents(events) {
   try {
     // Сортируем по времени начала
     const sorted = [...events].sort((a, b) => a.start - b.start);
-    
+
     // Алгоритм: для каждого события находим минимальную свободную колонку
     // с учётом всех пересекающихся с ним событий
     const activeEvents = []; // {end, col}
-    
+
     for (const e of sorted) {
       // Удаляем завершённые события
       for (let i = activeEvents.length - 1; i >= 0; i--) {
@@ -1366,16 +1366,16 @@ function layoutEvents(events) {
           activeEvents.splice(i, 1);
         }
       }
-      
+
       // Находим минимальную свободную колонку
       const usedCols = new Set(activeEvents.map(a => a.col));
       let col = 0;
       while (usedCols.has(col)) col++;
-      
+
       result.set(e.id, { x: col, total: 1 });
       activeEvents.push({ end: e.end, col });
     }
-    
+
     // Вычисляем максимальное количество колонок для каждой группы пересекающихся
     for (const e of sorted) {
       const info = result.get(e.id);
@@ -1396,7 +1396,7 @@ function layoutEvents(events) {
       result.set(e.id, { x: 0, total: 1 });
     }
   }
-  
+
   return result;
 }
 
@@ -1981,14 +1981,19 @@ function fmtLocalIso(d) {
 }
 
 function parseLocalIso(s) {
-  if (s instanceof Date) return s;
-  // Строка с явным поясом (Z, +03:00) — абсолютное время:
-  // парсим как есть, без перевода в локальное время
-  if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(String(s))) return new Date(s);
-  const [datePart, timePart] = String(s).split("T");
-  const [y, m, d] = datePart.split("-").map(Number);
-  const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
-  return new Date(y, m - 1, d, hh, mm, ss || 0);
+    if (s instanceof Date) return s;
+
+    // Если пояс уже указан явно (Z или +03:00) — парсим стандартно
+    if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(String(s))) {
+        return new Date(s);
+    }
+
+    const [datePart, timePart] = String(s).split("T");
+    const [y, m, d] = datePart.split("-").map(Number);
+    const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
+
+    // Date.UTC() зафиксирует время ровно в UTC, игнорируя часовой пояс системы
+    return new Date(Date.UTC(y, m - 1, d, hh, mm, ss || 0));
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
