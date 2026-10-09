@@ -267,6 +267,8 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   .time-grid-header {
@@ -301,13 +303,13 @@
     display: grid;
     grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
     gap: 6px;
-    overflow-y: auto;
     min-height: 0;
   }
 
   .hour-labels {
     display: flex;
     flex-direction: column;
+    padding-top: 7px;
   }
   .hour-label {
     height: var(--hour-height, 56px);
@@ -681,7 +683,6 @@
     .time-grid-header { grid-template-columns: 40px repeat(var(--cols, 7), minmax(80px, 1fr)); }
     .time-grid-body {
       grid-template-columns: 40px repeat(var(--cols, 7), minmax(80px, 1fr));
-      overflow-x: auto;
     }
     .hour-label { font-size: 9px; padding-right: 6px; }
     .hour-line { height: 48px; }
@@ -930,14 +931,16 @@
     </div>
     <div class="field">
       <label>Категория события</label>
-      <select id="evCategory">
-        <option value="Конкурс в Москве">Конкурс в Москве</option>
-        <option value="Выездной конкурс">Выездной конкурс</option>
-        <option value="Внутреннее мероприятие">Внутреннее мероприятие</option>
-        <option value="Выездное мероприятие">Выездное мероприятие</option>
-        <option value="Постановка">Постановка</option>
-        <option value="Прочее">Прочее</option>
-      </select>
+      <div class="select-wrapper">
+        <select id="evCategory">
+          <option value="Конкурс в Москве">Конкурс в Москве</option>
+          <option value="Выездной конкурс">Выездной конкурс</option>
+          <option value="Внутреннее мероприятие">Внутреннее мероприятие</option>
+          <option value="Выездное мероприятие">Выездное мероприятие</option>
+          <option value="Постановка">Постановка</option>
+          <option value="Прочее">Прочее</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Место</label>
@@ -1367,8 +1370,8 @@ function renderWeek() {
       const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
       const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
       const col = layout.get(e.id);
-      const left = (col.x * (100 / col.total)) + "%";
-      const width = (100 / col.total) + "%";
+      const left = (col.x * (100 / col.total) + 1.5) + "%";
+      const width = (100 / col.total - 3) + "%";
       html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
         <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
     }
@@ -1408,8 +1411,8 @@ function renderDay() {
     const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
     const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
     const col = layout.get(e.id);
-    const left = (col.x * (100 / col.total)) + "%";
-    const width = (100 / col.total) + "%";
+    const left = (col.x * (100 / col.total) + 1.5) + "%";
+    const width = (100 / col.total - 3) + "%";
     html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
       <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
   }
@@ -1759,9 +1762,11 @@ function applySettings() {
     root.style.setProperty("--text-muted", "#8b7fa3");
   } else if (settings.theme === "sepia" || settings.theme === "ocean" || settings.theme === "forest") {
     root.style.colorScheme = "light";
+    root.style.cssText = "";
     root.setAttribute("data-theme", settings.theme);
   } else {
     root.style.colorScheme = "";
+    root.style.cssText = "";
     root.removeAttribute("data-theme");
   }
   if (typeof render === "function") render();
