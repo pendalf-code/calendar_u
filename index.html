@@ -1983,7 +1983,6 @@ function fmtLocalIso(d) {
 function parseLocalIso(s) {
     if (s instanceof Date) return s;
 
-    // Если пояс уже указан явно (Z или +03:00) — парсим стандартно
     if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(String(s))) {
         return new Date(s);
     }
@@ -1992,8 +1991,14 @@ function parseLocalIso(s) {
     const [y, m, d] = datePart.split("-").map(Number);
     const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
 
-    // Date.UTC() зафиксирует время ровно в UTC, игнорируя часовой пояс системы
-    return new Date(Date.UTC(y, m - 1, d, hh, mm, ss || 0));
+    // Создаем локальную дату
+    const date = new Date(y, m - 1, d, hh, mm, ss || 0);
+
+    // getTimezoneOffset() для пояса UTC+3 вернет -180 минут.
+    // Вычитаем смещение, чтобы скомпенсировать часовой пояс окружения:
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+
+    return date;
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
