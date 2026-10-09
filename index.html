@@ -304,7 +304,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    overflow: auto;
     scrollbar-gutter: stable;
   }
 
@@ -312,7 +312,13 @@
     display: grid;
     grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
     gap: 6px;
-    margin-bottom: 8px;
+    padding-bottom: 8px;
+    /* Единый скролл-контейнер: заголовок приклеен к верху,
+       поэтому ширина заголовков и столбцов всегда совпадает */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--bg);
   }
   .time-grid-header .day-col-header {
     text-align: center;
@@ -336,11 +342,9 @@
   .dow-num { font-size: 18px; font-weight: 700; width: 32px; height: 32px; margin: 4px auto 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
 
   .time-grid-body {
-    flex: 1;
     display: grid;
     grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
     gap: 6px;
-    min-height: 0;
   }
 
   .hour-labels {
@@ -740,13 +744,6 @@
     .view-container { padding: 14px 16px; }
     .month-cell { min-height: 85px; padding: 6px; }
     .month-event { font-size: 10px; }
-    .time-grid-body { overflow-x: auto; }
-    .time-grid-header {
-      overflow-x: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .time-grid-header::-webkit-scrollbar { display: none; }
   }
 
   /* Мобильные (< 768px) */
@@ -1505,8 +1502,6 @@ function renderWeek() {
     };
     col.addEventListener("click", select);
   });
-
-  syncGridScroll();
 }
 
 function renderDay() {
@@ -1519,7 +1514,7 @@ function renderDay() {
 
   let html = `<div class="time-grid-wrapper"><div class="time-grid-header" style="--cols:1"><div></div>
     <div class="day-col-header${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${fmtDateInput(day)}">
-    <div class="dow-name">${DOW[(day.getDay() + 6) % 7]}</div><div class="dow-num">${day.getDate()}</div></div></div>
+    <div class="dow-name">${DOW[(day.getDay() + 6) % 7]}</div></div></div>
     <div class="time-grid-body" style="--cols:1"><div class="hour-labels">`;
   for (let h = 0; h < 24; h++) html += `<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`;
   html += `</div><div class="day-column" data-date="${fmtDateInput(day)}">`;
@@ -1546,19 +1541,6 @@ function renderDay() {
     };
     col.addEventListener("click", select);
   });
-
-  syncGridScroll();
-}
-
-function syncGridScroll() {
-  const header = viewContainer.querySelector(".time-grid-header");
-  const body = viewContainer.querySelector(".time-grid-body");
-  if (!header || !body) return;
-
-  // Синхронизируем горизонтальный скролл между заголовком и телом
-  // Используем свойства элементов, чтобы избежать дублирования обработчиков при перерисовке
-  body.onscroll = () => { header.scrollLeft = body.scrollLeft; };
-  header.onscroll = () => { body.scrollLeft = header.scrollLeft; };
 }
 
 /* ================= ПАНЕЛЬ СОБЫТИЙ ================= */
@@ -1716,11 +1698,12 @@ function closeModal() { modalOverlay.classList.remove("open"); }
 document.getElementById("modalSave").addEventListener("click", () => {
   const title = document.getElementById("evTitle").value.trim();
   if (!title) { showToast("Введите название события"); return; }
-  const date = parseDateInput(document.getElementById("evDate").value);
+  // Время события — ровно то, что указано при создании, без перевода в локальное время
+  const [y, m, d] = document.getElementById("evDate").value.split("-").map(Number);
   const [sh, sm] = document.getElementById("evStart").value.split(":").map(Number);
   const [eh, em] = document.getElementById("evEnd").value.split(":").map(Number);
-  const start = new Date(date); start.setHours(sh, sm, 0, 0);
-  const end = new Date(date); end.setHours(eh, em, 0, 0);
+  const start = new Date(y, m - 1, d, sh, sm);
+  const end = new Date(y, m - 1, d, eh, em);
   if (end <= start) { showToast("Время конца должно быть позже начала"); return; }
 
   const eventData = {
@@ -1974,7 +1957,7 @@ document.getElementById("gistCancel").addEventListener("click", () => {
   gistModal.classList.remove("open");
 });
 
-gistModal.addEventListener("click", e => { if (e.target === gistModal) gistModal.classList.remove("open"); });
+gistModal.addEventListener("mousedown", e => { if (e.target === gistModal) gistModal.classList.remove("open"); });
 
 /* ================= ТОСТ ================= */
 const toast = document.getElementById("toast");
@@ -1999,6 +1982,9 @@ function fmtLocalIso(d) {
 
 function parseLocalIso(s) {
   if (s instanceof Date) return s;
+  // Строка с явным поясом (Z, +03:00) — абсолютное время:
+  // парсим как есть, без перевода в локальное время
+  if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(String(s))) return new Date(s);
   const [datePart, timePart] = String(s).split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
@@ -2029,7 +2015,7 @@ function validateEvent(e) {
   const title = String(e.title || "").trim().slice(0, 200);
   if (!title) return null;
   const start = parseLocalIso(e.start);
-  const end = parseLocalIso(e.end || (start.getTime() + 3600000));
+  const end = e.end ? parseLocalIso(e.end) : new Date(start.getTime() + 3600000);
   if (isNaN(start)) return null;
   const validCats = ["purple", "amber", "pink", "lavender", "peach"];
   const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
