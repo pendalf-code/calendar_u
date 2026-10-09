@@ -1108,7 +1108,7 @@
       <div class="select-wrapper">
         <select id="setFirstDay">
           <option value="1">Понедельник</option>
-          <option value="7">Воскресенье</option>
+          <option value="0">Воскресенье</option>
           <option value="6">Суббота</option>
         </select>
       </div>
@@ -1117,8 +1117,8 @@
       <label>Выходные</label>
       <div class="select-wrapper">
         <select id="setWeekend">
-          <option value="6, 7">Суббота и воскресенье</option>
-          <option value="7">Только воскресенье</option>
+          <option value="6, 0">Суббота и воскресенье</option>
+          <option value="0">Только воскресенье</option>
           <option value="1, 6">Суббота и понедельник</option>
         </select>
       </div>
@@ -1841,7 +1841,7 @@ const SETTINGS_KEY = "calendar_settings_v1";
 let settings = {
   theme: "auto",
   firstDay: 1,
-  weekend: "6,7",
+  weekend: "6, 0",
   timeFormat: "24",
   hourHeight: 56,
 };
