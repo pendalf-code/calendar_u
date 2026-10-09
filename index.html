@@ -216,6 +216,7 @@
     overflow: hidden;
     position: relative;
     -webkit-tap-highlight-color: transparent;
+    min-width: 0;
   }
   .month-cell:hover {
     transform: translateY(-3px) scale(1.02);
@@ -254,6 +255,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     transition: filter 0.15s;
+    min-width: 0;
+    max-width: 100%;
+    width: fit-content;
   }
   .month-event:hover { filter: brightness(0.92); }
   .month-event.more {
@@ -608,6 +612,29 @@
   }
   .btn-ghost:hover { background: var(--border); }
 
+  .attach-btn {
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+  .attach-btn:hover { border-color: var(--c-purple-soft); background: var(--surface); }
+  .attach-btn.has-file {
+    border-style: solid;
+    border-color: var(--c-purple);
+    background: rgba(139, 92, 246, 0.08);
+  }
+
   /* ============ ТОСТ ============ */
   .toast {
     position: fixed;
@@ -878,8 +905,6 @@
   <button class="gist-btn" id="gistSyncBtn" title="Синхронизировать с Gist">&#8646; Синхр.</button>
   <button class="gist-btn" id="gistBtn" title="GitHub Gist синхронизация">&#9741; Gist</button>
   <button class="import-btn" id="exportBtn">&#8682; Экспорт JSON</button>
-  <button class="import-btn" id="importBtn">&#8681; Загрузить файл</button>
-  <input type="file" id="fileInput" accept=".ics,.json,.csv" hidden>
 </header>
 
 <div class="main">
@@ -949,6 +974,14 @@
     <div class="field">
       <label>Описание</label>
       <textarea id="evDesc" rows="2" placeholder="Детали..."></textarea>
+    </div>
+    <div class="field">
+      <label>Прикрепить файл</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-ghost" id="attachFileBtn" style="flex:1;">&#8681; Загрузить файл</button>
+        <span id="attachFileName" style="font-size:12px;color:var(--text-muted);"></span>
+      </div>
+      <input type="file" id="eventFileInput" hidden>
     </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="modalCancel">Отмена</button>
@@ -1465,6 +1498,9 @@ function renderPanel() {
         render();
         showToast("Событие удалено");
       });
+      card.addEventListener("click", () => {
+        openModal(state.selected, e);
+      });
       eventsList.appendChild(card);
     });
   }
@@ -1475,6 +1511,8 @@ function renderPanel() {
 const modalOverlay = document.getElementById("modalOverlay");
 const catPicker = document.getElementById("catPicker");
 let pickedCategory = "purple";
+let editingEventId = null; // id редактируемого события (null = создание нового)
+let attachedFileName = null; // имя прикреплённого файла
 
 Object.entries(CATEGORIES).forEach(([key, cat]) => {
   const el = document.createElement("div");
@@ -1489,16 +1527,69 @@ Object.entries(CATEGORIES).forEach(([key, cat]) => {
   catPicker.appendChild(el);
 });
 
-function openModal(day) {
-  document.getElementById("evTitle").value = "";
-  document.getElementById("evDate").value = fmtDateInput(day);
-  document.getElementById("evStart").value = "10:00";
-  document.getElementById("evEnd").value = "11:00";
-  document.getElementById("evLocation").value = "";
-  document.getElementById("evDesc").value = "";
-  document.getElementById("evCategory").value = "Конкурс в Москве";
+function openModal(day, eventToEdit = null) {
+  editingEventId = eventToEdit ? eventToEdit.id : null;
+  attachedFileName = null;
+
+  const titleEl = document.getElementById("evTitle");
+  const dateEl = document.getElementById("evDate");
+  const startEl = document.getElementById("evStart");
+  const endEl = document.getElementById("evEnd");
+  const locationEl = document.getElementById("evLocation");
+  const descEl = document.getElementById("evDesc");
+  const categoryEl = document.getElementById("evCategory");
+  const attachBtn = document.getElementById("attachFileBtn");
+  const attachName = document.getElementById("attachFileName");
+
+  if (eventToEdit) {
+    // Режим редактирования
+    document.querySelector("#modalOverlay h2").textContent = "Редактировать событие";
+    titleEl.value = eventToEdit.title;
+    dateEl.value = fmtDateInput(eventToEdit.start);
+    startEl.value = String(eventToEdit.start.getHours()).padStart(2, "0") + ":" + String(eventToEdit.start.getMinutes()).padStart(2, "0");
+    endEl.value = String(eventToEdit.end.getHours()).padStart(2, "0") + ":" + String(eventToEdit.end.getMinutes()).padStart(2, "0");
+    locationEl.value = eventToEdit.location || "";
+    descEl.value = eventToEdit.description || "";
+    categoryEl.value = eventToEdit.eventCategory || "Конкурс в Москве";
+    pickedCategory = eventToEdit.category || "purple";
+    attachedFileName = eventToEdit.attachedFile || null;
+  } else {
+    // Режим создания
+    document.querySelector("#modalOverlay h2").textContent = "Новое событие";
+    titleEl.value = "";
+    dateEl.value = fmtDateInput(day);
+    startEl.value = "10:00";
+    endEl.value = "11:00";
+    locationEl.value = "";
+    descEl.value = "";
+    categoryEl.value = "Конкурс в Москве";
+    pickedCategory = "purple";
+  }
+
+  // Обновляем визуальный выбор категории
+  catPicker.querySelectorAll(".cat-option").forEach(o => {
+    o.classList.toggle("active", o.dataset.cat === pickedCategory);
+  });
+
+  // Обновляем кнопку прикрепления файла
+  updateAttachButton();
+
   modalOverlay.classList.add("open");
-  setTimeout(() => document.getElementById("evTitle").focus(), 150);
+  setTimeout(() => titleEl.focus(), 150);
+}
+
+function updateAttachButton() {
+  const btn = document.getElementById("attachFileBtn");
+  const nameEl = document.getElementById("attachFileName");
+  if (attachedFileName) {
+    btn.innerHTML = "&#10003; Файл прикреплён";
+    btn.classList.add("has-file");
+    nameEl.textContent = attachedFileName;
+  } else {
+    btn.innerHTML = "&#8681; Загрузить файл";
+    btn.classList.remove("has-file");
+    nameEl.textContent = "";
+  }
 }
 function closeModal() { modalOverlay.classList.remove("open"); }
 
@@ -1512,27 +1603,52 @@ document.getElementById("modalSave").addEventListener("click", () => {
   const end = new Date(date); end.setHours(eh, em, 0, 0);
   if (end <= start) { showToast("Время конца должно быть позже начала"); return; }
 
-  state.events.push({
-    id: uid(), title, start, end,
+  const eventData = {
+    title, start, end,
     location: document.getElementById("evLocation").value.trim(),
     description: document.getElementById("evDesc").value.trim(),
     category: pickedCategory,
     eventCategory: document.getElementById("evCategory").value,
-  });
+    attachedFile: attachedFileName,
+  };
+
+  if (editingEventId) {
+    // Редактирование существующего события
+    const idx = state.events.findIndex(e => e.id === editingEventId);
+    if (idx !== -1) {
+      state.events[idx] = { ...state.events[idx], ...eventData };
+      showToast("Событие обновлено");
+    }
+  } else {
+    // Создание нового события
+    state.events.push({ id: uid(), ...eventData });
+    showToast("Событие добавлено");
+  }
+
   saveEvents();
   state.selected = startOfDay(start);
   closeModal();
   render();
-  showToast("Событие добавлено");
 });
 document.getElementById("modalCancel").addEventListener("click", closeModal);
 modalOverlay.addEventListener("mousedown", e => { if (e.target === modalOverlay) closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
-/* ================= ЭКСПОРТ / ИМПОРТ ФАЙЛОВ ================= */
-const fileInput = document.getElementById("fileInput");
-document.getElementById("importBtn").addEventListener("click", () => fileInput.click());
+// Прикрепление файла к событию
+const eventFileInput = document.getElementById("eventFileInput");
+document.getElementById("attachFileBtn").addEventListener("click", () => {
+  eventFileInput.click();
+});
+eventFileInput.addEventListener("change", () => {
+  const file = eventFileInput.files[0];
+  if (file) {
+    attachedFileName = file.name;
+    updateAttachButton();
+  }
+  eventFileInput.value = "";
+});
 
+/* ================= ЭКСПОРТ / ИМПОРТ ФАЙЛОВ ================= */
 document.getElementById("exportBtn").addEventListener("click", () => {
   const data = JSON.stringify(state.events, null, 2);
   const blob = new Blob([data], { type: "application/json" });
@@ -1544,141 +1660,9 @@ document.getElementById("exportBtn").addEventListener("click", () => {
   URL.revokeObjectURL(url);
   showToast("Экспортировано событий: " + state.events.length);
 });
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const ext = file.name.split(".").pop().toLowerCase();
-      let imported = [];
-      if (ext === "ics") imported = parseICS(reader.result);
-      else if (ext === "json") imported = safeParseJSON(reader.result);
-      else if (ext === "csv") imported = parseCSV(reader.result);
-      else { showToast("Формат не поддерживается: ." + ext); return; }
 
-      if (imported.length === 0) { showToast("В файле не найдено событий"); return; }
-      state.events.push(...imported);
-      saveEvents();
-      render();
-      showToast(`Загружено событий: ${imported.length}`);
-    } catch (err) {
-      console.error(err);
-      showToast("Ошибка чтения файла");
-    }
-    fileInput.value = "";
-  };
-  reader.readAsText(file);
-});
 
-function parseICS(text) {
-  // Раскладываем длинные строки (folding)
-  const raw = text.replace(/\r\n/g, "\n").split("\n");
-  const lines = [];
-  for (const line of raw) {
-    if ((line.startsWith(" ") || line.startsWith("\t")) && lines.length) lines[lines.length - 1] += line.slice(1);
-    else lines.push(line);
-  }
 
-  const events = [];
-  let cur = null;
-  for (const line of lines) {
-    if (line === "BEGIN:VEVENT") cur = {};
-    else if (line === "END:VEVENT") {
-      if (cur && cur.DTSTART) {
-        const ev = icsToEvent(cur);
-        if (ev) events.push(ev);
-      }
-      cur = null;
-    } else if (cur) {
-      const idx = line.indexOf(":");
-      if (idx < 0) continue;
-      const key = line.slice(0, idx).split(";")[0];
-      cur[key] = line.slice(idx + 1);
-    }
-  }
-  return events;
-}
-
-function icsToEvent(v) {
-  const start = icsDate(v.DTSTART);
-  if (isNaN(start)) return null;
-  const end = v.DTEND ? icsDate(v.DTEND) : new Date(start.getTime() + 3600000);
-  const summary = (v.SUMMARY || "Без названия").replace(/\\,/g, ",").replace(/\\;/g, ";").slice(0, 200);
-  const haystack = summary + (v.DESCRIPTION || "");
-  const cat = /тренир|спорт|врач|стомат|здоров/i.test(haystack) ? "pink"
-    : /дедлайн|важн|срочн/i.test(haystack) ? "amber"
-    : /встреч|созвон|ревью|планёрк|митинг/i.test(haystack) ? "purple"
-    : "lavender";
-  return {
-    id: uid(), title: summary, start, end,
-    location: (v.LOCATION || "").replace(/\\,/g, ",").slice(0, 500),
-    description: (v.DESCRIPTION || "").replace(/\\n/g, " ").slice(0, 2000),
-    category: cat,
-    eventCategory: "Прочее",
-  };
-}
-
-function icsDate(s) {
-  const m = s.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?Z?)?/);
-  if (!m) return new Date();
-  if (m[4] !== undefined) {
-    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5] || 0, +m[6] || 0);
-    if (s.includes("Z")) return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-    return d;
-  }
-  return new Date(+m[1], +m[2] - 1, +m[3], 9, 0, 0);
-}
-
-function parseJSON(text) {
-  const data = JSON.parse(text);
-  const arr = Array.isArray(data) ? data : (data.events || []);
-  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
-  return arr.map(e => {
-    const start = new Date(e.start || e.dtstart);
-    const end = new Date(e.end || e.dtend || start.getTime() + 3600000);
-    if (isNaN(start)) return null;
-    return {
-      id: uid(),
-      title: String(e.title || e.summary || "Без названия"),
-      start, end,
-      location: String(e.location || ""),
-      description: String(e.description || ""),
-      category: CATEGORIES[e.category] ? e.category : "lavender",
-      eventCategory: validEventCats.includes(e.eventCategory) ? e.eventCategory : "Прочее",
-    };
-  }).filter(Boolean);
-}
-
-function parseCSV(text) {
-  const lines = text.replace(/\r\n/g, "\n").split("\n").filter(l => l.trim());
-  if (lines.length < 2) return [];
-  const split = l => l.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-  const header = split(lines[0]).map(h => h.toLowerCase());
-  const idx = name => header.indexOf(name);
-  const events = [];
-  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
-  for (let i = 1; i < lines.length; i++) {
-    const c = split(lines[i]);
-    const start = new Date(c[idx("start")] || c[idx("dtstart")] || c[idx("date")]);
-    if (isNaN(start)) continue;
-    const endRaw = c[idx("end")] || c[idx("dtend")];
-    const end = endRaw ? new Date(endRaw) : new Date(start.getTime() + 3600000);
-    const catRaw = (c[idx("category")] || "").toLowerCase();
-    const validCats = ["purple", "amber", "pink", "lavender", "peach"];
-    const eventCatRaw = c[idx("eventcategory")] || c[idx("event_category")] || "";
-    events.push({
-      id: uid(),
-      title: String(c[idx("title")] || c[idx("summary")] || "Без названия").slice(0, 200),
-      start, end,
-      location: String(c[idx("location")] || "").slice(0, 500),
-      description: String(c[idx("description")] || "").slice(0, 2000),
-      category: validCats.includes(catRaw) ? catRaw : "lavender",
-      eventCategory: validEventCats.includes(eventCatRaw) ? eventCatRaw : "Прочее",
-    });
-  }
-  return events;
-}
 
 /* ================= НАВИГАЦИЯ ================= */
 document.getElementById("prevBtn").addEventListener("click", () => shift(-1));
