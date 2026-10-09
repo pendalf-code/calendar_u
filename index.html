@@ -497,10 +497,10 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 26px;
-    width: 420px;
-    max-width: 92vw;
-    max-height: 88vh;
+    padding: 28px;
+    width: 480px;
+    max-width: 94vw;
+    max-height: 92vh;
     overflow-y: auto;
     transform: scale(0.92) translateY(16px);
     transition: transform 0.3s var(--ease-spring);
@@ -762,9 +762,9 @@
     .month-cell { min-height: 50px; }
   }
 
-  /* Тёмная система — уважение к prefers-color-scheme (оставляем светлую, но мягче) */
+  /* Тёмная система — уважение к prefers-color-scheme */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme]) {
       --bg: #1e1830;
       --bg-soft: #241d3a;
       --surface: #2b2344;
@@ -773,9 +773,8 @@
       --text: #f0eaff;
       --text-muted: #a89ec8;
     }
-    .day-column.weekend { background: #262040; }
-    .hour-line { border-bottom-color: rgba(139, 92, 246, 0.1); }
-    .field input, .field textarea, .field select { background: #241d3a; }
+    :root:not([data-theme]) .day-column.weekend { background: #262040; }
+    :root:not([data-theme]) .hour-line { border-bottom-color: rgba(139, 92, 246, 0.1); }
   }
 
   /* Сепия */
@@ -1368,8 +1367,8 @@ function renderWeek() {
       const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
       const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
       const col = layout.get(e.id);
-      const left = 4 + col.x * (100 / col.total) + "%";
-      const width = (100 / col.total - 1) + "%";
+      const left = (col.x * (100 / col.total)) + "%";
+      const width = (100 / col.total) + "%";
       html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
         <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
     }
@@ -1409,8 +1408,8 @@ function renderDay() {
     const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
     const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
     const col = layout.get(e.id);
-    const left = 4 + col.x * (100 / col.total) + "%";
-    const width = (100 / col.total - 1) + "%";
+    const left = (col.x * (100 / col.total)) + "%";
+    const width = (100 / col.total) + "%";
     html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
       <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
   }
@@ -1524,7 +1523,7 @@ document.getElementById("modalSave").addEventListener("click", () => {
   showToast("Событие добавлено");
 });
 document.getElementById("modalCancel").addEventListener("click", closeModal);
-modalOverlay.addEventListener("click", e => { if (e.target === modalOverlay) closeModal(); });
+modalOverlay.addEventListener("mousedown", e => { if (e.target === modalOverlay) closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 
 /* ================= ЭКСПОРТ / ИМПОРТ ФАЙЛОВ ================= */
@@ -1741,9 +1740,23 @@ function applySettings() {
   if (settings.theme === "dark") {
     root.style.colorScheme = "dark";
     root.removeAttribute("data-theme");
+    root.style.setProperty("--bg", "#1e1830");
+    root.style.setProperty("--bg-soft", "#241d3a");
+    root.style.setProperty("--surface", "#2b2344");
+    root.style.setProperty("--surface-2", "#332a52");
+    root.style.setProperty("--border", "#3d3360");
+    root.style.setProperty("--text", "#f0eaff");
+    root.style.setProperty("--text-muted", "#a89ec8");
   } else if (settings.theme === "light") {
     root.style.colorScheme = "light";
     root.removeAttribute("data-theme");
+    root.style.setProperty("--bg", "#f7f4fb");
+    root.style.setProperty("--bg-soft", "#f0eaf9");
+    root.style.setProperty("--surface", "#ffffff");
+    root.style.setProperty("--surface-2", "#f4effc");
+    root.style.setProperty("--border", "#e4dbf2");
+    root.style.setProperty("--text", "#2e2545");
+    root.style.setProperty("--text-muted", "#8b7fa3");
   } else if (settings.theme === "sepia" || settings.theme === "ocean" || settings.theme === "forest") {
     root.style.colorScheme = "light";
     root.setAttribute("data-theme", settings.theme);
@@ -1779,7 +1792,7 @@ document.getElementById("settingsCancel").addEventListener("click", () => {
   settingsModal.classList.remove("open");
 });
 
-settingsModal.addEventListener("click", e => { if (e.target === settingsModal) settingsModal.classList.remove("open"); });
+settingsModal.addEventListener("mousedown", e => { if (e.target === settingsModal) settingsModal.classList.remove("open"); });
 
 /* ================= GIST UI ================= */
 const gistModal = document.getElementById("gistModal");
