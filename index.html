@@ -1172,7 +1172,12 @@ const STORAGE_KEY = "calendar_events_v1";
 
 function saveEvents() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.events));
+    const serializable = state.events.map(e => ({
+      ...e,
+      start: fmtLocalIso(e.start),
+      end: fmtLocalIso(e.end),
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
   } catch (e) { /* приватный режим и т.п. */ }
   scheduleGistSync();
 }
@@ -1185,8 +1190,8 @@ function loadEvents() {
     if (!Array.isArray(arr)) return;
     state.events = arr.map(e => ({
       ...e,
-      start: new Date(e.start),
-      end: new Date(e.end),
+      start: parseLocalIso(e.start),
+      end: parseLocalIso(e.end),
     })).filter(e => e.title && !isNaN(e.start));
   } catch (e) { /* повреждённые данные — начинаем с чистого листа */ }
 }
@@ -1251,7 +1256,8 @@ async function gistUpload() {
   if (!gistConfig.id || !gistConfig.token || gistSyncing) return;
   gistSyncing = true;
   try {
-    const content = JSON.stringify(state.events, null, 2);
+    const serializable = state.events.map(e => ({ ...e, start: fmtLocalIso(e.start), end: fmtLocalIso(e.end) }));
+    const content = JSON.stringify(serializable, null, 2);
     console.log("[Gist] Uploading", state.events.length, "events to", gistConfig.id);
     await gistRequest("PATCH", "/gists/" + gistConfig.id, {
       files: { [GIST_FILE_NAME]: { content } },
@@ -1284,8 +1290,8 @@ async function gistDownload() {
 
     const events = arr.map(e => ({
       ...e,
-      start: new Date(e.start),
-      end: new Date(e.end),
+      start: parseLocalIso(e.start),
+      end: parseLocalIso(e.end),
       eventCategory: e.eventCategory || "Прочее",
       attachedFiles: Array.isArray(e.attachedFiles) ? e.attachedFiles.slice(0, 10) : [],
     })).filter(e => e.title && !isNaN(e.start));
@@ -1769,7 +1775,8 @@ eventFileInput.addEventListener("change", () => {
 
 /* ================= ЭКСПОРТ / ИМПОРТ ФАЙЛОВ ================= */
 document.getElementById("exportBtn").addEventListener("click", () => {
-  const data = JSON.stringify(state.events, null, 2);
+  const serializable = state.events.map(e => ({ ...e, start: fmtLocalIso(e.start), end: fmtLocalIso(e.end) }));
+  const data = JSON.stringify(serializable, null, 2);
   const blob = new Blob([data], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1984,6 +1991,19 @@ function parseDateInput(s) {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
+
+// Локальная ISO-строка без Z — чтобы время не зависело от часового пояса
+function fmtLocalIso(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + "T" + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
+}
+
+function parseLocalIso(s) {
+  if (s instanceof Date) return s;
+  const [datePart, timePart] = String(s).split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
+  return new Date(y, m - 1, d, hh, mm, ss || 0);
+}
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 }
@@ -2008,8 +2028,8 @@ function validateEvent(e) {
   if (!e || typeof e !== "object") return null;
   const title = String(e.title || "").trim().slice(0, 200);
   if (!title) return null;
-  const start = new Date(e.start);
-  const end = new Date(e.end || start.getTime() + 3600000);
+  const start = parseLocalIso(e.start);
+  const end = parseLocalIso(e.end || (start.getTime() + 3600000));
   if (isNaN(start)) return null;
   const validCats = ["purple", "amber", "pink", "lavender", "peach"];
   const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
