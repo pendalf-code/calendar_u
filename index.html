@@ -741,6 +741,12 @@
     .month-cell { min-height: 85px; padding: 6px; }
     .month-event { font-size: 10px; }
     .time-grid-body { overflow-x: auto; }
+    .time-grid-header {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .time-grid-header::-webkit-scrollbar { display: none; }
   }
 
   /* Мобильные (< 768px) */
@@ -1493,6 +1499,8 @@ function renderWeek() {
     };
     col.addEventListener("click", select);
   });
+
+  syncGridScroll();
 }
 
 function renderDay() {
@@ -1532,6 +1540,19 @@ function renderDay() {
     };
     col.addEventListener("click", select);
   });
+
+  syncGridScroll();
+}
+
+function syncGridScroll() {
+  const header = viewContainer.querySelector(".time-grid-header");
+  const body = viewContainer.querySelector(".time-grid-body");
+  if (!header || !body) return;
+
+  // Синхронизируем горизонтальный скролл между заголовком и телом
+  // Используем свойства элементов, чтобы избежать дублирования обработчиков при перерисовке
+  body.onscroll = () => { header.scrollLeft = body.scrollLeft; };
+  header.onscroll = () => { body.scrollLeft = header.scrollLeft; };
 }
 
 /* ================= ПАНЕЛЬ СОБЫТИЙ ================= */
