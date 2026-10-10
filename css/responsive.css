@@ -1,0 +1,146 @@
+/* Адаптивность. Подключается последним: переопределяет базовые стили.
+   Ширины: ≥1360 шапка в один ряд · <1360 два ряда · ≤1024 планшет · ≤900 телефон/планшет-портрет · ≤600 телефон · ≤380 узкий */
+
+/* Меню действий «⋮» есть на всех ширинах (стили — base.css); здесь только раскладка шапки */
+@media (max-width: 1359px) {
+  /* Два ряда: заголовок · навигация · период · меню / вид · поиск · фильтр */
+  .app-header {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title nav    label  menu"
+      "view  search search filter";
+    gap: 10px 12px;
+    padding: 10px 20px;
+  }
+  .header-spacer { display: none; }
+  .current-label { text-align: left; min-width: 0; padding-left: 6px; }
+  .search-box { min-width: 0; }
+  .filter-select { min-width: 210px; }
+}
+
+/* Планшеты */
+@media (max-width: 1024px) {
+  .app-header { padding: 10px 16px; }
+  .current-label { font-size: 15px; }
+  .view-container { padding: 14px 16px; }
+  .day-panel-content { padding: 14px 16px 18px; }
+  .month-grid { gap: 6px; }
+  .month-event { font-size: 10px; }
+}
+
+/* Телефоны и планшеты в портрете: четыре строки */
+@media (max-width: 900px) {
+  .app-header {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "title  menu"
+      "nav    label"
+      "view   view"
+      "search filter";
+    gap: 10px 8px;
+    padding: 10px 12px;
+  }
+  .view-switch .view-btn { flex: 1; }
+  .filter-select { min-width: 0; }
+  .search-results { width: calc(100vw - 24px); max-width: none; }
+}
+
+/* Телефоны */
+@media (max-width: 600px) {
+  .app-title { font-size: 17px; }
+  .view-container { padding: 10px; }
+
+  /* Месяц: события — цветные точки, подробности в панели дня */
+  .month-grid { gap: 4px; grid-template-rows: auto repeat(6, minmax(56px, 1fr)); }
+  .weekday-header { font-size: 10px; letter-spacing: 0.3px; padding: 4px 0 2px; }
+  .month-cell { padding: 4px; border-radius: 10px; gap: 2px; }
+  .month-cell:hover { transform: none; }
+  .day-num { width: 22px; height: 22px; font-size: 11px; border-radius: 6px; }
+  .month-events { flex-direction: row; flex-wrap: wrap; align-content: flex-start; gap: 3px; }
+  .month-event {
+    flex: none;
+    width: 8px; height: 8px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 0;
+  }
+  .month-event .rep-ico { display: none; }
+  .month-event.more { width: auto; height: auto; border-radius: 0; font-size: 10px; line-height: 8px; }
+  .month-event .more-word { display: none; }
+
+  /* Неделя/день: горизонтальный скролл, колонка часов приклеена слева */
+  .time-grid-wrapper { --gutter: 40px; }
+  .time-grid-wrapper.is-week { --col-min: 84px; }
+  .time-grid-header, .time-grid-body { gap: 4px; }
+  .hour-label { font-size: 9px; padding-right: 6px; }
+  .timed-event { font-size: 10px; padding: 3px 5px; }
+  .timed-event .te-time { font-size: 9px; }
+  .dow-name { font-size: 10px; letter-spacing: 0.5px; }
+  .dow-num { font-size: 16px; width: 28px; height: 28px; }
+
+  /* Панель дня */
+  .day-panel-content { padding: 12px 12px 16px; max-height: 46dvh; }
+  .panel-title { font-size: 15px; }
+  .panel-add-btn { padding: 7px 12px; font-size: 12px; }
+  .event-card { flex-wrap: wrap; padding: 10px 12px; gap: 4px 10px; }
+  .event-time { min-width: 0; flex-basis: 100%; font-size: 11px; }
+  .event-title { font-size: 13px; }
+  .event-meta { font-size: 11px; }
+  .event-del { opacity: 1; }
+
+  /* Модалка — нижняя шторка */
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    width: 100%;
+    max-width: 100vw;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(40px);
+  }
+  .field-row { flex-wrap: wrap; gap: 0 10px; }
+  .field-row .field { flex: 1 1 40%; }
+  .field-row .field:first-child { flex-basis: 100%; }
+  .cat-option { width: 44px; height: 44px; }
+
+  .toast { bottom: calc(16px + env(safe-area-inset-bottom)); padding: 10px 18px; font-size: 12px; }
+}
+
+/* Узкие телефоны */
+@media (max-width: 380px) {
+  .nav-btn { width: 34px; height: 34px; min-width: 0; min-height: 0; }
+  .today-btn { height: 34px; padding: 0 12px; min-width: 0; min-height: 0; }
+  .icon-btn.menu-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+}
+
+/* Телефон в ландшафте: минимум высоты шапки */
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-header {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  .app-title .title-text { display: none; }
+  .header-spacer { display: block; }
+  .current-label { min-width: 0; padding: 0; font-size: 14px; text-align: left; }
+  .view-switch .view-btn { flex: none; }
+  .search-box { min-width: 150px; }
+  .filter-select { min-width: 160px; }
+  .month-grid { grid-template-rows: auto repeat(6, minmax(44px, 1fr)); }
+  .day-panel-content { max-height: 50dvh; }
+}
+
+/* Устройства без наведения: удаление события видно всегда, крупные зоны нажатия */
+@media (hover: none) {
+  .event-del { opacity: 1; }
+  .month-cell:hover, .event-card:hover, .timed-event:hover { transform: none; }
+}
+@media (pointer: coarse) {
+  .nav-btn, .today-btn, .view-btn, .panel-close, .event-del, .panel-add-btn { min-width: 44px; min-height: 44px; }
+  .icon-btn { min-height: 40px; min-width: 40px; }
+  .filter-select select, .search-box input { height: 44px; }
+}
+@media (pointer: coarse) and (max-width: 380px) {
+  .nav-btn, .today-btn { min-width: 0; min-height: 0; }
+}

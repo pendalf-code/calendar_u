@@ -2,1027 +2,148 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Календарь</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%238b5cf6'/><rect x='20' y='30' width='60' height='50' rx='8' fill='white'/><rect x='20' y='30' width='60' height='14' rx='7' fill='%23f0b429'/><circle cx='35' cy='55' r='5' fill='%238b5cf6'/><circle cx='50' cy='55' r='5' fill='%23e879c9'/><circle cx='65' cy='55' r='5' fill='%23f0b429'/></svg>">
-<style>
-  :root {
-    /* Пурпурно-жёплая гамма */
-    --bg: #f7f4fb;
-    --bg-soft: #f0eaf9;
-    --surface: #ffffff;
-    --surface-2: #f4effc;
-    --border: #e4dbf2;
-    --text: #2e2545;
-    --text-muted: #8b7fa3;
-
-    --c-purple: #8b5cf6;
-    --c-purple-soft: #a78bfa;
-    --c-amber: #f0b429;
-    --c-pink: #e879c9;
-    --c-lavender: #c4b5fd;
-    --c-peach: #fcd34d;
-
-    --radius: 16px;
-    --ease-spring: cubic-bezier(0.34, 1.4, 0.44, 1);
-    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  html, body { height: 100%; }
-
-  body {
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* ============ ШАПКА ============ */
-  .app-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 24px;
-    background: var(--bg-soft);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-
-  .app-title {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .app-title .dot {
-    width: 12px; height: 12px;
-    border-radius: 4px;
-    background: linear-gradient(135deg, var(--c-purple), var(--c-amber));
-  }
-
-  .nav-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .nav-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 36px; height: 36px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s var(--ease-smooth);
-  }
-  .nav-btn:hover { background: var(--surface-2); transform: translateY(-1px); }
-
-  .today-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s var(--ease-smooth);
-  }
-  .today-btn:hover { background: var(--surface-2); }
-
-  .current-label {
-    font-size: 17px;
-    font-weight: 600;
-    min-width: 190px;
-    text-align: center;
-  }
-
-  /* Переключатель вида */
-  .view-switch {
-    display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 3px;
-    gap: 3px;
-  }
-  .view-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    padding: 7px 18px;
-    border-radius: 9px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.25s var(--ease-smooth);
-  }
-  .view-btn:hover { color: var(--text); }
-  .view-btn.active {
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(139, 92, 246, 0.35);
-  }
-
-  /* Фильтр по категориям */
-  .category-filter {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 3px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .category-filter::-webkit-scrollbar { display: none; }
-  .cat-filter-btn {
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    padding: 7px 14px;
-    border-radius: 9px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.25s var(--ease-smooth);
-    white-space: nowrap;
-  }
-  .cat-filter-btn:hover { color: var(--text); }
-  .cat-filter-btn.active {
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(139, 92, 246, 0.35);
-  }
-
-  .header-spacer { flex: 1; }
-
-  .import-btn {
-    background: linear-gradient(135deg, var(--c-purple), var(--c-amber));
-    border: none;
-    color: #fff;
-    padding: 9px 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s var(--ease-smooth);
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
-  }
-  .import-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45); }
-
-  .gist-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 9px 18px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s var(--ease-smooth);
-  }
-  .gist-btn:hover { background: var(--surface-2); border-color: var(--c-purple-soft); }
-  .gist-btn.connected {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: #fff;
-    border-color: transparent;
-  }
-
-  /* ============ ОСНОВНАЯ ОБЛАСТЬ ============ */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .view-container {
-    flex: 1;
-    overflow: auto;
-    padding: 20px 24px;
-  }
-
-  /* ============ МЕСЯЦ ============ */
-  .month-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 1fr;
-    gap: 8px;
-    height: 100%;
-  }
-
-  .weekday-header {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    padding: 6px 0 10px;
-  }
-
-  .month-cell {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px;
-    min-height: 0;
-    cursor: pointer;
-    display: -webkit-box;
-    display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-box-direction: normal;
-            flex-direction: column;
-    gap: 4px;
-    transition: transform 0.25s var(--ease-spring), border-color 0.2s, background 0.2s;
-    overflow: hidden;
-    position: relative;
-    -webkit-tap-highlight-color: transparent;
-    min-width: 0;
-  }
-  .month-cell:hover {
-    transform: translateY(-3px) scale(1.02);
-    border-color: var(--c-purple-soft);
-    background: var(--surface-2);
-    z-index: 2;
-    box-shadow: 0 10px 24px rgba(139, 92, 246, 0.15);
-  }
-  .month-cell.other-month { opacity: 0.4; }
-  .month-cell.other-month:hover { opacity: 0.7; }
-  .month-cell.selected {
-    border-color: var(--c-purple);
-    box-shadow: 0 0 0 1px var(--c-purple), 0 8px 24px rgba(139, 92, 246, 0.2);
-  }
-  .month-cell.today .day-num {
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-  }
-
-  .day-num {
-    font-size: 13px;
-    font-weight: 700;
-    width: 26px; height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-  }
-
-  .month-event {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 7px;
-    border-radius: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: filter 0.15s;
-    min-width: 0;
-    max-width: 100%;
-    width: fit-content;
-  }
-  .month-event:hover { filter: brightness(0.92); }
-  .month-event.more {
-    background: transparent !important;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  /* ============ НЕДЕЛЯ / ДЕНЬ ============ */
-  .time-grid-wrapper {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    overflow: auto;
-    scrollbar-gutter: stable;
-  }
-
-  .time-grid-header {
-    display: grid;
-    grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
-    gap: 6px;
-    padding-bottom: 8px;
-    /* Единый скролл-контейнер: заголовок приклеен к верху,
-       поэтому ширина заголовков и столбцов всегда совпадает */
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: var(--bg);
-  }
-  .time-grid-header .day-col-header {
-    text-align: center;
-    padding: 8px 4px;
-    border-radius: 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  .time-grid-header .day-col-header:hover { background: var(--surface-2); }
-  .time-grid-header .day-col-header.selected {
-    border-color: var(--c-purple);
-    box-shadow: 0 0 0 1px var(--c-purple);
-  }
-  .time-grid-header .day-col-header.today .dow-num {
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-  }
-  .dow-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; }
-  .dow-num { font-size: 18px; font-weight: 700; width: 32px; height: 32px; margin: 4px auto 0; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
-
-  .time-grid-body {
-    display: grid;
-    grid-template-columns: 60px repeat(var(--cols, 7), 1fr);
-    gap: 6px;
-  }
-
-  .hour-labels {
-    display: flex;
-    flex-direction: column;
-    padding-top: 7px;
-  }
-  .hour-label {
-    height: var(--hour-height, 56px);
-    font-size: 11px;
-    color: var(--text-muted);
-    text-align: right;
-    padding-right: 10px;
-    transform: translateY(-7px);
-    font-weight: 600;
-  }
-
-  .day-column {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .day-column:hover { background: var(--surface-2); }
-  .day-column.weekend { background: #faf7fe; }
-
-  .hour-line {
-    height: var(--hour-height, 56px);
-    border-bottom: 1px solid rgba(139, 92, 246, 0.07);
-  }
-
-  .timed-event {
-    position: absolute;
-    left: 4px; right: 4px;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    overflow: hidden;
-    cursor: pointer;
-    transition: filter 0.15s, transform 0.15s;
-    z-index: 2;
-  }
-  .timed-event:hover { filter: brightness(0.92); transform: scale(1.01); }
-  .timed-event .te-time { font-size: 10px; opacity: 0.75; font-weight: 500; }
-
-  /* ============ ПАНЕЛЬ СОБЫТИЙ (анимация разворачивания) ============ */
-  .day-panel {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.45s var(--ease-spring);
-    flex-shrink: 0;
-  }
-  .day-panel.open { grid-template-rows: 1fr; }
-
-  .day-panel-inner {
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .day-panel-content {
-    background: var(--bg-soft);
-    border-top: 1px solid var(--border);
-    padding: 18px 24px 22px;
-    opacity: 0;
-    transform: translateY(12px);
-    transition: opacity 0.35s var(--ease-smooth) 0.08s, transform 0.35s var(--ease-smooth) 0.08s;
-  }
-  .day-panel.open .day-panel-content { opacity: 1; transform: translateY(0); }
-
-  .panel-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-  .panel-title { font-size: 18px; font-weight: 700; }
-  .panel-title .panel-date-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px; height: 34px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-    font-size: 16px;
-    margin-right: 10px;
-    vertical-align: middle;
-  }
-  .panel-add-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-  .panel-add-btn:hover { background: var(--surface-2); border-color: var(--c-purple-soft); }
-  .panel-close {
-    margin-left: auto;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 20px;
-    cursor: pointer;
-    width: 34px; height: 34px;
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
-  .panel-close:hover { background: var(--surface-2); color: var(--text); }
-
-  .events-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .event-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--cat-color, var(--c-purple));
-    border-radius: 12px;
-    padding: 12px 16px;
-    animation: eventIn 0.35s var(--ease-spring) backwards;
-    transition: transform 0.2s var(--ease-spring), background 0.2s;
-  }
-  .event-card:hover { transform: translateX(4px); background: var(--surface-2); }
-  @keyframes eventIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .event-time {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-    min-width: 96px;
-    font-variant-numeric: tabular-nums;
-  }
-  .event-info { flex: 1; min-width: 0; }
-  .event-title { font-size: 14px; font-weight: 600; }
-  .event-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-  .event-del {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 15px;
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    opacity: 0;
-    transition: all 0.2s;
-  }
-  .event-card:hover .event-del { opacity: 1; }
-  .event-del:hover { background: rgba(232, 121, 201, 0.15); color: var(--c-pink); }
-
-  .empty-note {
-    color: var(--text-muted);
-    font-size: 13px;
-    text-align: center;
-    padding: 18px 0 6px;
-  }
-
-  /* ============ МОДАЛЬНОЕ ОКНО ============ */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(46, 37, 69, 0.35);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
-    display: -webkit-box;
-    display: flex;
-    -webkit-box-align: center;
-            align-items: center;
-    -webkit-box-pack: center;
-            justify-content: center;
-    z-index: 100;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: auto; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 28px;
-    width: 480px;
-    max-width: 94vw;
-    max-height: 92vh;
-    overflow-y: auto;
-    transform: scale(0.92) translateY(16px);
-    transition: transform 0.3s var(--ease-spring);
-    box-shadow: 0 24px 64px rgba(139, 92, 246, 0.25);
-  }
-  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
-
-  .modal h2 { font-size: 18px; margin-bottom: 18px; }
-
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 6px;
-  }
-  .field input, .field textarea, .field select {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    padding: 10px 36px 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .field select {
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-  }
-  .select-wrapper {
-    position: relative;
-  }
-  .select-wrapper::after {
-    content: "";
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 8px;
-    background: var(--text-muted);
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
-    pointer-events: none;
-  }
-  .field textarea {
-    resize: vertical;
-    min-height: 60px;
-  }
-  .field input:focus, .field textarea:focus, .field select:focus {
-    border-color: var(--c-purple);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
-  }
-  .field-row { display: flex; gap: 10px; }
-  .field-row .field { flex: 1; }
-
-  .cat-picker { display: flex; gap: 8px; }
-  .cat-option {
-    width: 38px; height: 38px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s var(--ease-spring);
-    position: relative;
-  }
-  .cat-option:hover { transform: scale(1.12); }
-  .cat-option.active {
-    border-color: var(--text);
-    transform: scale(1.12);
-    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3);
-  }
-
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .btn-primary {
-    flex: 1;
-    background: linear-gradient(135deg, var(--c-purple), var(--c-pink));
-    border: none;
-    color: #fff;
-    padding: 12px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
-  .btn-ghost {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 12px 18px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-ghost:hover { background: var(--border); }
-
-  .attach-btn {
-    background: var(--surface-2);
-    border: 1px dashed var(--border);
-    color: var(--text);
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    justify-content: center;
-  }
-  .attach-btn:hover { border-color: var(--c-purple-soft); background: var(--surface); }
-  .attach-btn.has-file {
-    border-style: solid;
-    border-color: var(--c-purple);
-    background: rgba(139, 92, 246, 0.08);
-  }
-
-  .attach-file-list {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .attach-file-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-  .attach-file-item .file-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .attach-file-item .file-remove {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 14px;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .attach-file-item .file-remove:hover { background: rgba(232, 121, 201, 0.15); color: var(--c-pink); }
-
-  /* ============ ТОСТ ============ */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
-    color: #fff;
-    padding: 12px 22px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    z-index: 200;
-    opacity: 0;
-    transition: all 0.35s var(--ease-spring);
-    box-shadow: 0 12px 32px rgba(139, 92, 246, 0.4);
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  /* Скроллбар */
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--c-lavender); border-radius: 6px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--c-purple-soft); }
-
-  /* ============ АДАПТИВНОСТЬ ============ */
-
-  /* Планшеты (768px – 1024px) */
-  @media (max-width: 1024px) {
-    .app-header { padding: 12px 16px; gap: 10px; }
-    .current-label { min-width: 150px; font-size: 15px; }
-    .view-container { padding: 14px 16px; }
-    .month-cell { min-height: 85px; padding: 6px; }
-    .month-event { font-size: 10px; }
-  }
-
-  /* Мобильные (< 768px) */
-  @media (max-width: 768px) {
-    .app-header {
-      padding: 10px 12px;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .app-title { font-size: 17px; width: 100%; }
-    .nav-group { order: 2; }
-    .current-label {
-      order: 3;
-      min-width: 0;
-      flex: 1;
-      font-size: 14px;
-      text-align: left;
-    }
-    .view-switch { order: 4; width: 100%; justify-content: center; }
-    .view-btn { padding: 8px 14px; font-size: 12px; }
-    .header-spacer { display: none; }
-    .import-btn { order: 5; width: 100%; padding: 12px; }
-
-    .view-container { padding: 10px 10px; }
-
-    /* Месяц на мобильных */
-    .month-grid { gap: 4px; }
-    .weekday-header { font-size: 10px; padding: 4px 0 6px; }
-    .month-cell {
-      min-height: 60px;
-      padding: 4px;
-      border-radius: 10px;
-    }
-    .day-num { width: 22px; height: 22px; font-size: 11px; border-radius: 6px; }
-    .month-event { font-size: 9px; padding: 2px 4px; border-radius: 4px; }
-
-    /* Неделя/день на мобильных — горизонтальный скролл */
-    .time-grid-header { grid-template-columns: 40px repeat(var(--cols, 7), minmax(80px, 1fr)); }
-    .time-grid-body {
-      grid-template-columns: 40px repeat(var(--cols, 7), minmax(80px, 1fr));
-    }
-    .hour-label { font-size: 9px; padding-right: 6px; }
-    .hour-line { height: 48px; }
-    .timed-event { font-size: 10px; padding: 3px 5px; }
-    .timed-event .te-time { font-size: 9px; }
-
-    /* Панель событий */
-    .day-panel-content { padding: 14px 12px 18px; }
-    .panel-title { font-size: 15px; }
-    .panel-title .panel-date-badge { width: 28px; height: 28px; font-size: 14px; }
-    .panel-add-btn { padding: 7px 12px; font-size: 12px; }
-    .event-card { padding: 10px 12px; gap: 10px; }
-    .event-time { min-width: 80px; font-size: 11px; }
-    .event-title { font-size: 13px; }
-    .event-meta { font-size: 11px; }
-
-    /* Модалка на мобильных */
-    .modal {
-      width: 100%;
-      max-width: 100vw;
-      border-radius: 20px 20px 0 0;
-      padding: 20px 16px;
-      max-height: 92vh;
-    }
-    .modal-overlay { align-items: flex-end; }
-    .field-row { flex-direction: column; gap: 0; }
-    .cat-option { width: 44px; height: 44px; }
-
-    /* Тост */
-    .toast { bottom: 16px; padding: 10px 18px; font-size: 12px; max-width: 90vw; }
-  }
-
-  /* Очень маленькие экраны (< 380px) */
-  @media (max-width: 380px) {
-    .month-cell { min-height: 50px; }
-    .month-event { display: none; }
-    .month-event:first-of-type { display: block; }
-    .day-num { width: 20px; height: 20px; font-size: 10px; }
-  }
-
-  /* Тёмная тема для новых тем (переопределение) */
-  @media (prefers-color-scheme: dark) {
-    [data-theme="sepia"] {
-      --bg: #2a2218;
-      --bg-soft: #332a1e;
-      --surface: #3d3226;
-      --surface-2: #4a3e30;
-      --border: #5a4e3e;
-      --text: #f0e8d8;
-      --text-muted: #a89880;
-    }
-    [data-theme="ocean"] {
-      --bg: #1a2a35;
-      --bg-soft: #223540;
-      --surface: #2a4050;
-      --surface-2: #335060;
-      --border: #406070;
-      --text: #e0f0f8;
-      --text-muted: #80a0b0;
-    }
-    [data-theme="forest"] {
-      --bg: #1a2a1a;
-      --bg-soft: #223522;
-      --surface: #2a402a;
-      --surface-2: #335033;
-      --border: #406040;
-      --text: #e0f0e0;
-      --text-muted: #80a080;
-    }
-  }
-
-  /* Ландшафтная ориентация на мобильных */
-  @media (max-height: 500px) and (orientation: landscape) {
-    .app-header { padding: 6px 12px; }
-    .app-title { font-size: 15px; width: auto; }
-    .view-switch { width: auto; }
-    .import-btn { width: auto; padding: 6px 14px; }
-    .month-cell { min-height: 50px; }
-  }
-
-  /* Тёмная система — уважение к prefers-color-scheme */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme]) {
-      --bg: #1e1830;
-      --bg-soft: #241d3a;
-      --surface: #2b2344;
-      --surface-2: #332a52;
-      --border: #3d3360;
-      --text: #f0eaff;
-      --text-muted: #a89ec8;
-    }
-    :root:not([data-theme]) .day-column.weekend { background: #262040; }
-    :root:not([data-theme]) .hour-line { border-bottom-color: rgba(139, 92, 246, 0.1); }
-  }
-
-  /* Сепия */
-  [data-theme="sepia"] {
-    --bg: #f5efe0;
-    --bg-soft: #ede4d0;
-    --surface: #faf5e8;
-    --surface-2: #f0e8d4;
-    --border: #ddd0b8;
-    --text: #4a3f2f;
-    --text-muted: #8a7a60;
-    --c-purple: #a05c2c;
-    --c-purple-soft: #c07a3a;
-    --c-amber: #c49a3a;
-    --c-pink: #c47a6a;
-    --c-lavender: #d4c4a0;
-    --c-peach: #e0c070;
-  }
-  [data-theme="sepia"] .day-column.weekend { background: #f0e8d4; }
-  [data-theme="sepia"] .hour-line { border-bottom-color: rgba(160, 92, 44, 0.08); }
-
-  /* Океан */
-  [data-theme="ocean"] {
-    --bg: #e8f0f5;
-    --bg-soft: #d8e5ee;
-    --surface: #f0f6fa;
-    --surface-2: #e0ecf4;
-    --border: #c0d4e0;
-    --text: #1e3a4a;
-    --text-muted: #5a7a8a;
-    --c-purple: #2a7a9a;
-    --c-purple-soft: #4a9ab5;
-    --c-amber: #3a9a8a;
-    --c-pink: #5a8aaa;
-    --c-lavender: #a0c4d4;
-    --c-peach: #70b0a0;
-  }
-  [data-theme="ocean"] .day-column.weekend { background: #d8e5ee; }
-  [data-theme="ocean"] .hour-line { border-bottom-color: rgba(42, 122, 154, 0.08); }
-
-  /* Лесная */
-  [data-theme="forest"] {
-    --bg: #e8f0e8;
-    --bg-soft: #d8e5d8;
-    --surface: #f0f6f0;
-    --surface-2: #e0ece0;
-    --border: #c0d4c0;
-    --text: #1e3a1e;
-    --text-muted: #5a7a5a;
-    --c-purple: #3a7a3a;
-    --c-purple-soft: #5a9a5a;
-    --c-amber: #6a9a2a;
-    --c-pink: #7a8a4a;
-    --c-lavender: #a0c4a0;
-    --c-peach: #80b060;
-  }
-  [data-theme="forest"] .day-column.weekend { background: #d8e5d8; }
-  [data-theme="forest"] .hour-line { border-bottom-color: rgba(58, 122, 58, 0.08); }
-
-  /* Уменьшенная анимация для пользователей с настройкой */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  /* Кросс-браузерность: fallback для grid */
-  @supports not (display: grid) {
-    .month-grid { display: flex; flex-wrap: wrap; }
-    .month-cell { width: calc(100% / 7 - 8px); }
-    .time-grid-header, .time-grid-body { display: flex; }
-    .day-column { flex: 1; min-width: 100px; }
-  }
-
-  /* Touch-устройства: увеличенные зоны нажатия */
-  @media (pointer: coarse) {
-    .nav-btn, .today-btn, .view-btn, .panel-close, .event-del { min-width: 44px; min-height: 44px; }
-    .month-cell { min-height: 70px; }
-  }
-</style>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/themes.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/calendar.css">
+<link rel="stylesheet" href="css/modal.css">
+<link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
 <header class="app-header">
-  <div class="app-title"><span class="dot"></span>Календарь</div>
+  <div class="app-title"><span class="dot"></span><span class="title-text">Календарь</span></div>
+
   <div class="nav-group">
-    <button class="nav-btn" id="prevBtn" title="Назад"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="nav-btn" id="prevBtn" title="Назад" aria-label="Назад"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button class="today-btn" id="todayBtn">Сегодня</button>
-    <button class="nav-btn" id="nextBtn" title="Вперёд"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <button class="nav-btn" id="nextBtn" title="Вперёд" aria-label="Вперёд"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
-  <div class="current-label" id="currentLabel"></div>
-  <div class="view-switch">
+
+  <div class="current-label" id="currentLabel" aria-live="polite"></div>
+
+  <div class="view-switch" role="group" aria-label="Вид календаря">
     <button class="view-btn" data-view="day">День</button>
     <button class="view-btn" data-view="week">Неделя</button>
     <button class="view-btn active" data-view="month">Месяц</button>
   </div>
-  <div class="category-filter" id="categoryFilter"></div>
+
+  <div class="search-box" id="searchBox">
+    <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="searchInput" placeholder="Поиск событий" autocomplete="off" aria-label="Поиск по названию и месту">
+    <button type="button" class="search-clear" id="searchClear" title="Очистить" aria-label="Очистить поиск" hidden>
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="search-results" id="searchResults" hidden></div>
+  </div>
+
+  <div class="filter-select select-wrapper" id="filterWrap">
+    <select id="categoryFilter" aria-label="Фильтр по категории события"></select>
+  </div>
+
   <div class="header-spacer"></div>
-  <button class="gist-btn" id="settingsBtn" title="Настройки">&#9881;</button>
-  <button class="gist-btn" id="gistSyncBtn" title="Синхронизировать с Gist">&#8646; Синхр.</button>
-  <button class="gist-btn" id="gistBtn" title="GitHub Gist синхронизация">&#9741; Gist</button>
-  <button class="import-btn" id="exportBtn">&#8682; Экспорт JSON</button>
+
+  <div class="header-menu">
+  <button class="icon-btn menu-btn" id="menuBtn" title="Меню" aria-label="Меню" aria-haspopup="true" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+  </button>
+  <div class="header-actions" id="headerActions">
+    <button class="icon-btn" id="settingsBtn" title="Настройки" aria-label="Настройки">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span class="btn-text">Настройки</span>
+    </button>
+    <button class="icon-btn" id="gistSyncBtn" title="Синхронизировать с Gist" aria-label="Синхронизировать с Gist">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 01-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0115.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg>
+      <span class="btn-text">Синхр.</span>
+    </button>
+    <button class="icon-btn" id="gistBtn" title="Настроить GitHub Gist синхронизацию" aria-label="GitHub Gist">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
+      <span class="btn-text">Gist</span>
+    </button>
+    <button class="icon-btn primary" id="exportBtn" title="Экспорт в JSON" aria-label="Экспорт в JSON">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      <span class="btn-text">Экспорт</span>
+    </button>
+  </div>
+  </div>
 </header>
 
-<div class="main">
+<main class="main">
   <div class="view-container" id="viewContainer"></div>
 
   <!-- Панель событий выбранного дня -->
-  <div class="day-panel" id="dayPanel">
+  <section class="day-panel" id="dayPanel" aria-label="События дня">
     <div class="day-panel-inner">
       <div class="day-panel-content">
         <div class="panel-header">
           <div class="panel-title">
-            <span class="panel-date-badge" id="panelDateBadge"></span>
             <span id="panelTitle"></span>
           </div>
-          <button class="panel-add-btn" id="panelAddBtn">+ Событие</button>
-          <button class="panel-close" id="panelCloseBtn" title="Закрыть">&times;</button>
+          <button class="panel-add-btn" id="panelAddBtn">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Событие
+          </button>
+          <button class="panel-close" id="panelCloseBtn" title="Закрыть" aria-label="Закрыть">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
         </div>
         <div class="events-list" id="eventsList"></div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
+</main>
 
-<!-- Модальное окно добавления события -->
+<!-- Модальное окно события -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h2>Новое событие</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
+    <h2 id="eventModalTitle">Новое событие</h2>
     <div class="field">
-      <label>Название</label>
-      <input type="text" id="evTitle" placeholder="Что за событие?">
+      <label for="evTitle">Название</label>
+      <input type="text" id="evTitle" maxlength="200" placeholder="Что за событие?">
     </div>
     <div class="field-row">
       <div class="field">
-        <label>Дата</label>
+        <label for="evDate">Дата</label>
         <input type="date" id="evDate">
       </div>
       <div class="field">
-        <label>Начало</label>
+        <label for="evStart">Начало</label>
         <input type="time" id="evStart" value="10:00">
       </div>
       <div class="field">
-        <label>Конец</label>
+        <label for="evEnd">Конец</label>
         <input type="time" id="evEnd" value="11:00">
+      </div>
+    </div>
+    <div class="field">
+      <label for="evRepeat">Повторение</label>
+      <div class="select-wrapper">
+        <select id="evRepeat">
+          <option value="none">Не повторять</option>
+          <option value="daily">Каждый день</option>
+          <option value="weekly">Каждую неделю</option>
+          <option value="monthly">Каждый месяц</option>
+          <option value="yearly">Каждый год</option>
+        </select>
+      </div>
+    </div>
+    <div class="repeat-opts" id="repeatOpts" hidden>
+      <div class="field-row">
+        <div class="field">
+          <label for="evInterval" id="intervalLabel">Интервал</label>
+          <input type="number" id="evInterval" min="1" max="99" value="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label for="evUntil">Повторять до</label>
+          <input type="date" id="evUntil">
+        </div>
+      </div>
+      <div class="field" id="weekdaysField" hidden>
+        <label>По дням недели</label>
+        <div class="weekday-picker" id="weekdayPicker"></div>
       </div>
     </div>
     <div class="field">
@@ -1030,29 +151,22 @@
       <div class="cat-picker" id="catPicker"></div>
     </div>
     <div class="field">
-      <label>Категория события</label>
+      <label for="evCategory">Категория события</label>
       <div class="select-wrapper">
-        <select id="evCategory">
-          <option value="Конкурс в Москве">Конкурс в Москве</option>
-          <option value="Выездной конкурс">Выездной конкурс</option>
-          <option value="Внутреннее мероприятие">Внутреннее мероприятие</option>
-          <option value="Выездное мероприятие">Выездное мероприятие</option>
-          <option value="Постановка">Постановка</option>
-          <option value="Прочее">Прочее</option>
-        </select>
+        <select id="evCategory"></select>
       </div>
     </div>
     <div class="field">
-      <label>Место</label>
-      <input type="text" id="evLocation" placeholder="Где проходит?">
+      <label for="evLocation">Место</label>
+      <input type="text" id="evLocation" maxlength="500" placeholder="Где проходит?">
     </div>
     <div class="field">
-      <label>Описание</label>
-      <textarea id="evDesc" rows="2" placeholder="Детали..."></textarea>
+      <label for="evDesc">Описание</label>
+      <textarea id="evDesc" rows="2" maxlength="2000" placeholder="Детали..."></textarea>
     </div>
     <div class="field">
       <label>Прикрепить файлы</label>
-      <button class="attach-btn" id="attachFileBtn">&#8681; Загрузить файлы</button>
+      <button type="button" class="attach-btn" id="attachFileBtn"></button>
       <div class="attach-file-list" id="attachFileList"></div>
       <input type="file" id="eventFileInput" multiple hidden>
     </div>
@@ -1063,21 +177,21 @@
   </div>
 </div>
 
-<!-- Модальное окно настроек Gist -->
+<!-- Модальное окно Gist -->
 <div class="modal-overlay" id="gistModal">
-  <div class="modal">
-    <h2>GitHub Gist синхронизация</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gistModalTitle">
+    <h2 id="gistModalTitle">GitHub Gist синхронизация</h2>
     <div class="field">
-      <label>Gist ID</label>
-      <input type="text" id="gistId" placeholder="например, a1b2c3d4e5f6...">
+      <label for="gistId">Gist ID</label>
+      <input type="text" id="gistId" placeholder="например, a1b2c3d4e5f6..." autocomplete="off">
     </div>
     <div class="field">
-      <label>Personal Access Token</label>
-      <input type="password" id="gistToken" placeholder="ghp_...">
+      <label for="gistToken">Personal Access Token</label>
+      <input type="password" id="gistToken" placeholder="ghp_..." autocomplete="off">
     </div>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:-6px;margin-bottom:14px;">
+    <p class="field-hint">
       Токен хранится только в вашем браузере (localStorage). Создайте токен с правами <code>gist</code> на
-      <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--c-purple);">github.com/settings/tokens</a>.
+      <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
     </p>
     <div class="modal-actions">
       <button class="btn-ghost" id="gistCancel">Отмена</button>
@@ -1088,10 +202,10 @@
 
 <!-- Модальное окно настроек -->
 <div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <h2>Настройки</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <h2 id="settingsModalTitle">Настройки</h2>
     <div class="field">
-      <label>Тема оформления</label>
+      <label for="setTheme">Тема оформления</label>
       <div class="select-wrapper">
         <select id="setTheme">
           <option value="auto">Системная</option>
@@ -1104,7 +218,7 @@
       </div>
     </div>
     <div class="field">
-      <label>Первый день недели</label>
+      <label for="setFirstDay">Первый день недели</label>
       <div class="select-wrapper">
         <select id="setFirstDay">
           <option value="1">Понедельник</option>
@@ -1114,21 +228,31 @@
       </div>
     </div>
     <div class="field">
-      <label>Выходные</label>
+      <label for="setWeekend">Выходные</label>
       <div class="select-wrapper">
         <select id="setWeekend">
-          <option value="6, 0">Суббота и воскресенье</option>
+          <option value="6,0">Суббота и воскресенье</option>
           <option value="0">Только воскресенье</option>
-          <option value="1, 6">Суббота и понедельник</option>
+          <option value="1,6">Суббота и понедельник</option>
         </select>
       </div>
     </div>
     <div class="field">
-      <label>Формат времени</label>
+      <label for="setTimeFormat">Формат времени</label>
       <div class="select-wrapper">
         <select id="setTimeFormat">
           <option value="24">24-часовой</option>
           <option value="12">12-часовой (AM/PM)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="setHourHeight">Масштаб сетки дня и недели</label>
+      <div class="select-wrapper">
+        <select id="setHourHeight">
+          <option value="40">Компактный</option>
+          <option value="56">Обычный</option>
+          <option value="80">Крупный</option>
         </select>
       </div>
     </div>
@@ -1139,933 +263,33 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
-<script>
-"use strict";
-
-/* ================= ДАННЫЕ ================= */
-const CATEGORIES = {
-  purple:   { name: "Пурпурный",  color: "var(--c-purple)",   hex: "#8b5cf6", text: "#ffffff" },
-  amber:    { name: "Жёлтый",     color: "var(--c-amber)",    hex: "#f0b429", text: "#2e2545" },
-  pink:     { name: "Розовый",     color: "var(--c-pink)",     hex: "#e879c9", text: "#ffffff" },
-  lavender: { name: "Лавандовый", color: "var(--c-lavender)", hex: "#c4b5fd", text: "#2e2545" },
-  peach:    { name: "Персиковый",  color: "var(--c-peach)",    hex: "#fcd34d", text: "#2e2545" },
-};
-
-const state = {
-  view: "month",            // day | week | month
-  anchor: new Date(),       // дата, вокруг которой строится вид
-  selected: null,           // выбранный день (Date)
-  events: [],               // {id,title,start,end,location,description,category}
-  categoryFilter: "all",    // фильтр по категориям
-};
-
-let idCounter = 1;
-const uid = () => "ev" + Date.now().toString(36) + (idCounter++);
-
-/* ================= ХРАНИЛИЩЕ ================= */
-const STORAGE_KEY = "calendar_events_v1";
-
-function saveEvents() {
-  try {
-    const serializable = state.events.map(e => ({
-      ...e,
-      start: fmtLocalIso(e.start),
-      end: fmtLocalIso(e.end),
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
-  } catch (e) { /* приватный режим и т.п. */ }
-  scheduleGistSync();
-}
-
-function loadEvents() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return;
-    state.events = arr.map(e => ({
-      ...e,
-      start: parseLocalIso(e.start),
-      end: parseLocalIso(e.end),
-    })).filter(e => e.title && !isNaN(e.start));
-  } catch (e) { /* повреждённые данные — начинаем с чистого листа */ }
-}
-
-safeLoadEvents();
-
-/* ================= GIST СИНХРОНИЗАЦИЯ ================= */
-const GIST_STORAGE_KEY = "calendar_gist_config_v1";
-const GIST_FILE_NAME = "calendar-events.json";
-
-let gistConfig = { id: "", token: "" };
-let gistSyncTimer = null;
-let gistSyncing = false;
-
-function loadGistConfig() {
-  try {
-    const raw = localStorage.getItem(GIST_STORAGE_KEY);
-    if (raw) gistConfig = JSON.parse(raw);
-  } catch (e) { /* ignore */ }
-  updateGistButton();
-}
-
-function saveGistConfig() {
-  localStorage.setItem(GIST_STORAGE_KEY, JSON.stringify(gistConfig));
-  updateGistButton();
-}
-
-function updateGistButton() {
-  const btn = document.getElementById("gistBtn");
-  if (gistConfig.id && gistConfig.token) {
-    btn.classList.add("connected");
-    btn.innerHTML = "&#10003; Gist";
-    btn.title = "Синхронизировано с Gist";
-  } else {
-    btn.classList.remove("connected");
-    btn.innerHTML = "&#9741; Gist";
-    btn.title = "Настроить GitHub Gist синхронизацию";
-  }
-}
-
-async function gistRequest(method, url, body) {
-  const headers = {
-    "Accept": "application/vnd.github.v3+json",
-    "Content-Type": "application/json",
-  };
-  if (gistConfig.token) headers["Authorization"] = "token " + gistConfig.token;
-
-  const res = await fetch("https://api.github.com" + url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || ("HTTP " + res.status));
-  }
-  return res.json();
-}
-
-async function gistUpload() {
-  if (!gistConfig.id || !gistConfig.token || gistSyncing) return;
-  gistSyncing = true;
-  try {
-    const serializable = state.events.map(e => ({ ...e, start: fmtLocalIso(e.start), end: fmtLocalIso(e.end) }));
-    const content = JSON.stringify(serializable, null, 2);
-    console.log("[Gist] Uploading", state.events.length, "events to", gistConfig.id);
-    await gistRequest("PATCH", "/gists/" + gistConfig.id, {
-      files: { [GIST_FILE_NAME]: { content } },
-    });
-    console.log("[Gist] Upload success");
-    showToast("Синхронизировано с Gist");
-  } catch (e) {
-    console.error("Gist upload error:", e);
-    showToast("Ошибка загрузки в Gist: " + e.message);
-  } finally {
-    gistSyncing = false;
-  }
-}
-
-async function gistDownload() {
-  if (!gistConfig.id || !gistConfig.token) return;
-  try {
-    console.log("[Gist] Downloading from", gistConfig.id);
-    const gist = await gistRequest("GET", "/gists/" + gistConfig.id);
-    const file = gist.files && gist.files[GIST_FILE_NAME];
-    if (!file) {
-      console.warn("[Gist] File not found in gist");
-      return;
-    }
-
-    const res = await fetch(file.raw_url);
-    const text = await res.text();
-    const arr = JSON.parse(text);
-    if (!Array.isArray(arr)) return;
-
-    const events = arr.map(e => ({
-      ...e,
-      start: parseLocalIso(e.start),
-      end: parseLocalIso(e.end),
-      eventCategory: e.eventCategory || "Прочее",
-      attachedFiles: Array.isArray(e.attachedFiles) ? e.attachedFiles.slice(0, 10) : [],
-    })).filter(e => e.title && !isNaN(e.start));
-
-    console.log("[Gist] Downloaded", events.length, "events");
-    if (events.length > 0) {
-      state.events = events;
-      saveEvents();
-      render();
-      showToast("Загружено из Gist: " + events.length + " событий");
-    }
-  } catch (e) {
-    console.error("Gist download error:", e);
-    // Не показываем ошибку при автозагрузке — молча пропускаем
-  }
-}
-
-function scheduleGistSync() {
-  if (!gistConfig.id || !gistConfig.token) return;
-  clearTimeout(gistSyncTimer);
-  gistSyncTimer = setTimeout(gistUpload, 2000); // debounce 2 секунды
-}
-
-// Загрузка из Gist при старте
-loadGistConfig();
-if (gistConfig.id && gistConfig.token) {
-  gistDownload();
-}
-
-/* ================= УТИЛИТЫ ================= */
-const MONTHS = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-const MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-const DOW = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"];
-
-const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-const isSameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-const addDays = (d, n) => { const t = new Date(d); t.setDate(t.getDate() + n); return t; };
-const fmtTime = d => {
-  if (settings.timeFormat === "12") {
-    const h = d.getHours();
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return h12 + ":" + String(d.getMinutes()).padStart(2, "0") + " " + ampm;
-  }
-  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-};
-const fmtDayTitle = d => d.getDate() + " " + MONTHS_GEN[d.getMonth()] + ", " + DOW[(d.getDay() + 6) % 7];
-const fmtDateInput = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-
-function eventsForDay(day) {
-  return state.events
-    .filter(e => isSameDay(e.start, day) || isSameDay(e.end, day) ||
-      (e.start < day && e.end > day))
-    .filter(e => state.categoryFilter === "all" || e.eventCategory === state.categoryFilter)
-    .sort((a, b) => a.start - b.start);
-}
-
-// Распределение пересекающихся событий по колонкам
-function layoutEvents(events) {
-  const result = new Map();
-  if (!events || events.length === 0) return result;
-
-  try {
-    // Сортируем по времени начала
-    const sorted = [...events].sort((a, b) => a.start - b.start);
-
-    // Алгоритм: для каждого события находим минимальную свободную колонку
-    // с учётом всех пересекающихся с ним событий
-    const activeEvents = []; // {end, col}
-
-    for (const e of sorted) {
-      // Удаляем завершённые события
-      for (let i = activeEvents.length - 1; i >= 0; i--) {
-        if (activeEvents[i].end <= e.start) {
-          activeEvents.splice(i, 1);
-        }
-      }
-
-      // Находим минимальную свободную колонку
-      const usedCols = new Set(activeEvents.map(a => a.col));
-      let col = 0;
-      while (usedCols.has(col)) col++;
-
-      result.set(e.id, { x: col, total: 1 });
-      activeEvents.push({ end: e.end, col });
-    }
-
-    // Вычисляем максимальное количество колонок для каждой группы пересекающихся
-    for (const e of sorted) {
-      const info = result.get(e.id);
-      if (!info) continue;
-      let maxCol = info.x;
-      for (const other of sorted) {
-        if (other.id !== e.id && other.start < e.end && e.start < other.end) {
-          const otherInfo = result.get(other.id);
-          if (otherInfo && otherInfo.x > maxCol) maxCol = otherInfo.x;
-        }
-      }
-      info.total = maxCol + 1;
-    }
-  } catch (e) {
-    console.error("layoutEvents error:", e);
-    // Fallback: все события в одной колонке
-    for (const e of events) {
-      result.set(e.id, { x: 0, total: 1 });
-    }
-  }
-
-  return result;
-}
-
-/* ================= РЕНДЕР ================= */
-const viewContainer = document.getElementById("viewContainer");
-const currentLabel = document.getElementById("currentLabel");
-
-function render() {
-  if (state.view === "month") renderMonth();
-  else if (state.view === "week") renderWeek();
-  else renderDay();
-  renderPanel();
-}
-
-function renderMonth() {
-  const year = state.anchor.getFullYear();
-  const month = state.anchor.getMonth();
-  currentLabel.textContent = MONTHS[month] + " " + year;
-
-  const first = new Date(year, month, 1);
-  const lead = (first.getDay() - settings.firstDay + 7) % 7;
-  const startDate = addDays(first, -lead);
-  const today = startOfDay(new Date());
-
-  let html = '<div class="month-grid">';
-  for (let c = 0; c < 7; c++) html += `<div class="weekday-header">${DOW[(settings.firstDay + c) % 7]}</div>`;
-
-  for (let i = 0; i < 42; i++) {
-    const day = addDays(startDate, i);
-    const inMonth = day.getMonth() === month;
-    const isToday = isSameDay(day, today);
-    const isSelected = state.selected && isSameDay(day, state.selected);
-    const dayEvents = eventsForDay(day);
-    const evs = dayEvents.slice(0, 3);
-    const extra = dayEvents.length - evs.length;
-
-    html += `<div class="month-cell${inMonth ? "" : " other-month"}${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${fmtDateInput(day)}">`;
-    html += `<div class="day-num">${day.getDate()}</div>`;
-    for (const e of evs) {
-      const cat = CATEGORIES[e.category];
-      html += `<div class="month-event" style="background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`;
-    }
-    if (extra > 0) html += `<div class="month-event more">+${extra} ещё</div>`;
-    html += `</div>`;
-  }
-  html += "</div>";
-  viewContainer.innerHTML = html;
-
-  viewContainer.querySelectorAll(".month-cell").forEach(cell => {
-    const select = () => {
-      state.selected = parseDateInput(cell.dataset.date);
-      render();
-    };
-    cell.addEventListener("click", select);
-  });
-}
-
-function renderWeek() {
-  const startOfWeek = addDays(startOfDay(state.anchor), -((state.anchor.getDay() - settings.firstDay + 7) % 7));
-  const endOfWeek = addDays(startOfWeek, 6);
-  currentLabel.textContent = startOfWeek.getDate() + " " + MONTHS_GEN[startOfWeek.getMonth()] + " — " + endOfWeek.getDate() + " " + MONTHS_GEN[endOfWeek.getMonth()];
-
-  const today = startOfDay(new Date());
-  const weekendDays = settings.weekend.split(",").map(Number);
-  let html = '<div class="time-grid-wrapper"><div class="time-grid-header" style="--cols:7"><div></div>';
-  for (let i = 0; i < 7; i++) {
-    const day = addDays(startOfWeek, i);
-    const isToday = isSameDay(day, today);
-    const isSelected = state.selected && isSameDay(day, state.selected);
-    html += `<div class="day-col-header${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${fmtDateInput(day)}">
-      <div class="dow-name">${DOW[(settings.firstDay + i) % 7]}</div><div class="dow-num">${day.getDate()}</div></div>`;
-  }
-  html += '</div><div class="time-grid-body" style="--cols:7"><div class="hour-labels">';
-  for (let h = 0; h < 24; h++) html += `<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`;
-  html += "</div>";
-
-  for (let i = 0; i < 7; i++) {
-    const day = addDays(startOfWeek, i);
-    const weekend = weekendDays.includes(day.getDay());
-    html += `<div class="day-column${weekend ? " weekend" : ""}" data-date="${fmtDateInput(day)}">`;
-    for (let h = 0; h < 24; h++) html += '<div class="hour-line"></div>';
-    const dayEvents = eventsForDay(day);
-    const layout = layoutEvents(dayEvents);
-    for (const e of dayEvents) {
-      const cat = CATEGORIES[e.category];
-      const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
-      const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
-      const col = layout.get(e.id);
-      const left = (col.x * (100 / col.total) + 1.5) + "%";
-      const width = (100 / col.total - 3) + "%";
-      html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
-        <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
-    }
-    html += "</div>";
-  }
-  html += "</div></div>";
-  viewContainer.innerHTML = html;
-
-  viewContainer.querySelectorAll(".day-column, .day-col-header").forEach(col => {
-    const select = () => {
-      state.selected = parseDateInput(col.dataset.date);
-      render();
-    };
-    col.addEventListener("click", select);
-  });
-}
-
-function renderDay() {
-  const day = startOfDay(state.anchor);
-  currentLabel.textContent = fmtDayTitle(day);
-
-  const today = startOfDay(new Date());
-  const isToday = isSameDay(day, today);
-  const isSelected = state.selected && isSameDay(day, state.selected);
-
-  let html = `<div class="time-grid-wrapper"><div class="time-grid-header" style="--cols:1"><div></div>
-    <div class="day-col-header${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${fmtDateInput(day)}">
-    <div class="dow-name">${DOW[(day.getDay() + 6) % 7]}</div></div></div>
-    <div class="time-grid-body" style="--cols:1"><div class="hour-labels">`;
-  for (let h = 0; h < 24; h++) html += `<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`;
-  html += `</div><div class="day-column" data-date="${fmtDateInput(day)}">`;
-  for (let h = 0; h < 24; h++) html += '<div class="hour-line"></div>';
-  const dayEvents = eventsForDay(day);
-  const layout = layoutEvents(dayEvents);
-  for (const e of dayEvents) {
-    const cat = CATEGORIES[e.category];
-    const top = (e.start.getHours() + e.start.getMinutes() / 60) * settings.hourHeight;
-    const bottom = Math.max((e.end.getHours() + e.end.getMinutes() / 60) * settings.hourHeight, top + 24);
-    const col = layout.get(e.id);
-    const left = (col.x * (100 / col.total) + 1.5) + "%";
-    const width = (100 / col.total - 3) + "%";
-    html += `<div class="timed-event" style="top:${top}px;height:${bottom - top - 2}px;left:${left};width:${width};background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">
-      <div class="te-time">${fmtTime(e.start)}–${fmtTime(e.end)}</div>${escapeHtml(e.title)}</div>`;
-  }
-  html += "</div></div></div>";
-  viewContainer.innerHTML = html;
-
-  viewContainer.querySelectorAll(".day-column, .day-col-header").forEach(col => {
-    const select = () => {
-      state.selected = parseDateInput(col.dataset.date);
-      render();
-    };
-    col.addEventListener("click", select);
-  });
-}
-
-/* ================= ПАНЕЛЬ СОБЫТИЙ ================= */
-const dayPanel = document.getElementById("dayPanel");
-const panelDateBadge = document.getElementById("panelDateBadge");
-const panelTitle = document.getElementById("panelTitle");
-const eventsList = document.getElementById("eventsList");
-
-function renderPanel() {
-  if (!state.selected) { dayPanel.classList.remove("open"); return; }
-  const day = state.selected;
-  panelDateBadge.textContent = day.getDate();
-  panelTitle.textContent = fmtDayTitle(day);
-
-  const evs = eventsForDay(day);
-  if (evs.length === 0) {
-    eventsList.innerHTML = '<div class="empty-note">Событий нет — самое время что-нибудь запланировать ✦</div>';
-  } else {
-    eventsList.innerHTML = "";
-    evs.forEach((e, i) => {
-      const card = document.createElement("div");
-      card.className = "event-card";
-      card.style.setProperty("--cat-color", CATEGORIES[e.category].hex);
-      card.style.animationDelay = (i * 0.05) + "s";
-      const filesHtml = Array.isArray(e.attachedFiles) && e.attachedFiles.length > 0
-        ? `<div class="event-meta">${e.attachedFiles.map(f => `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>${escapeHtml(f.name)}</span>`).join("")}</div>`
-        : "";
-      card.innerHTML = `
-        <div class="event-time">${fmtTime(e.start)} – ${fmtTime(e.end)}</div>
-        <div class="event-info">
-          <div class="event-title">${escapeHtml(e.title)}</div>
-          ${e.eventCategory ? `<div class="event-meta" style="color:var(--c-purple);font-weight:600;">${escapeHtml(e.eventCategory)}</div>` : ""}
-          ${e.location || e.description ? `<div class="event-meta">${escapeHtml([e.location, e.description].filter(Boolean).join(" · "))}</div>` : ""}
-          ${filesHtml}
-        </div>
-        <button class="event-del" title="Удалить">&times;</button>`;
-      card.querySelector(".event-del").addEventListener("click", ev => {
-        ev.stopPropagation();
-        state.events = state.events.filter(x => x.id !== e.id);
-        saveEvents();
-        render();
-        showToast("Событие удалено");
-      });
-      card.addEventListener("click", () => {
-        openModal(state.selected, e);
-      });
-      eventsList.appendChild(card);
-    });
-  }
-  dayPanel.classList.add("open");
-}
-
-/* ================= МОДАЛЬНОЕ ОКНО ================= */
-const modalOverlay = document.getElementById("modalOverlay");
-const catPicker = document.getElementById("catPicker");
-let pickedCategory = "purple";
-let editingEventId = null; // id редактируемого события (null = создание нового)
-let attachedFiles = []; // массив прикреплённых файлов {name, dataUrl}
-
-Object.entries(CATEGORIES).forEach(([key, cat]) => {
-  const el = document.createElement("div");
-  el.className = "cat-option" + (key === pickedCategory ? " active" : "");
-  el.style.background = cat.hex;
-  el.title = cat.name;
-  el.dataset.cat = key;
-  el.addEventListener("click", () => {
-    pickedCategory = key;
-    catPicker.querySelectorAll(".cat-option").forEach(o => o.classList.toggle("active", o === el));
-  });
-  catPicker.appendChild(el);
-});
-
-function openModal(day, eventToEdit = null) {
-  editingEventId = eventToEdit ? eventToEdit.id : null;
-  attachedFiles = [];
-
-  const titleEl = document.getElementById("evTitle");
-  const dateEl = document.getElementById("evDate");
-  const startEl = document.getElementById("evStart");
-  const endEl = document.getElementById("evEnd");
-  const locationEl = document.getElementById("evLocation");
-  const descEl = document.getElementById("evDesc");
-  const categoryEl = document.getElementById("evCategory");
-
-  if (eventToEdit) {
-    // Режим редактирования
-    document.querySelector("#modalOverlay h2").textContent = "Редактировать событие";
-    titleEl.value = eventToEdit.title;
-    dateEl.value = fmtDateInput(eventToEdit.start);
-    startEl.value = String(eventToEdit.start.getHours()).padStart(2, "0") + ":" + String(eventToEdit.start.getMinutes()).padStart(2, "0");
-    endEl.value = String(eventToEdit.end.getHours()).padStart(2, "0") + ":" + String(eventToEdit.end.getMinutes()).padStart(2, "0");
-    locationEl.value = eventToEdit.location || "";
-    descEl.value = eventToEdit.description || "";
-    categoryEl.value = eventToEdit.eventCategory || "Конкурс в Москве";
-    pickedCategory = eventToEdit.category || "purple";
-    attachedFiles = Array.isArray(eventToEdit.attachedFiles) ? [...eventToEdit.attachedFiles] : [];
-  } else {
-    // Режим создания
-    document.querySelector("#modalOverlay h2").textContent = "Новое событие";
-    titleEl.value = "";
-    dateEl.value = fmtDateInput(day);
-    startEl.value = "10:00";
-    endEl.value = "11:00";
-    locationEl.value = "";
-    descEl.value = "";
-    categoryEl.value = "Конкурс в Москве";
-    pickedCategory = "purple";
-  }
-
-  // Обновляем визуальный выбор категории
-  catPicker.querySelectorAll(".cat-option").forEach(o => {
-    o.classList.toggle("active", o.dataset.cat === pickedCategory);
-  });
-
-  // Обновляем кнопку прикрепления файла
-  updateAttachButton();
-
-  modalOverlay.classList.add("open");
-  setTimeout(() => titleEl.focus(), 150);
-}
-
-function updateAttachButton() {
-  const btn = document.getElementById("attachFileBtn");
-  const listEl = document.getElementById("attachFileList");
-  if (attachedFiles.length > 0) {
-    btn.innerHTML = "&#10003; Файлов: " + attachedFiles.length;
-    btn.classList.add("has-file");
-  } else {
-    btn.innerHTML = "&#8681; Загрузить файлы";
-    btn.classList.remove("has-file");
-  }
-  renderAttachFileList();
-}
-
-function renderAttachFileList() {
-  const listEl = document.getElementById("attachFileList");
-  if (attachedFiles.length === 0) {
-    listEl.innerHTML = "";
-    return;
-  }
-  listEl.innerHTML = "";
-  attachedFiles.forEach((f, i) => {
-    const item = document.createElement("div");
-    item.className = "attach-file-item";
-    item.innerHTML = `<span class="file-name">${escapeHtml(f.name)}</span><button class="file-remove" title="Удалить">&times;</button>`;
-    item.querySelector(".file-remove").addEventListener("click", () => {
-      attachedFiles.splice(i, 1);
-      updateAttachButton();
-    });
-    listEl.appendChild(item);
-  });
-}
-function closeModal() { modalOverlay.classList.remove("open"); }
-
-document.getElementById("modalSave").addEventListener("click", () => {
-  const title = document.getElementById("evTitle").value.trim();
-  if (!title) { showToast("Введите название события"); return; }
-  // Время события — ровно то, что указано при создании, без перевода в локальное время
-  const [y, m, d] = document.getElementById("evDate").value.split("-").map(Number);
-  const [sh, sm] = document.getElementById("evStart").value.split(":").map(Number);
-  const [eh, em] = document.getElementById("evEnd").value.split(":").map(Number);
-  const start = new Date(y, m - 1, d, sh, sm);
-  const end = new Date(y, m - 1, d, eh, em);
-  if (end <= start) { showToast("Время конца должно быть позже начала"); return; }
-
-  const eventData = {
-    title, start, end,
-    location: document.getElementById("evLocation").value.trim(),
-    description: document.getElementById("evDesc").value.trim(),
-    category: pickedCategory,
-    eventCategory: document.getElementById("evCategory").value,
-    attachedFiles: [...attachedFiles],
-  };
-
-  if (editingEventId) {
-    // Редактирование существующего события
-    const idx = state.events.findIndex(e => e.id === editingEventId);
-    if (idx !== -1) {
-      state.events[idx] = { ...state.events[idx], ...eventData };
-      showToast("Событие обновлено");
-    }
-  } else {
-    // Создание нового события
-    state.events.push({ id: uid(), ...eventData });
-    showToast("Событие добавлено");
-  }
-
-  saveEvents();
-  state.selected = startOfDay(start);
-  closeModal();
-  render();
-});
-document.getElementById("modalCancel").addEventListener("click", closeModal);
-modalOverlay.addEventListener("mousedown", e => { if (e.target === modalOverlay) closeModal(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
-
-// Прикрепление файлов к событию
-const eventFileInput = document.getElementById("eventFileInput");
-document.getElementById("attachFileBtn").addEventListener("click", () => {
-  eventFileInput.click();
-});
-eventFileInput.addEventListener("change", () => {
-  const files = Array.from(eventFileInput.files);
-  files.forEach(file => {
-    if (attachedFiles.length >= 10) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      attachedFiles.push({ name: file.name, dataUrl: reader.result });
-      updateAttachButton();
-    };
-    reader.readAsDataURL(file);
-  });
-  eventFileInput.value = "";
-});
-
-/* ================= ЭКСПОРТ / ИМПОРТ ФАЙЛОВ ================= */
-document.getElementById("exportBtn").addEventListener("click", () => {
-  const serializable = state.events.map(e => ({ ...e, start: fmtLocalIso(e.start), end: fmtLocalIso(e.end) }));
-  const data = JSON.stringify(serializable, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "calendar-events-" + fmtDateInput(new Date()) + ".json";
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast("Экспортировано событий: " + state.events.length);
-});
-
-
-
-
-/* ================= ФИЛЬТР ПО КАТЕГОРИЯМ ================= */
-const CATEGORY_LIST = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
-
-function renderCategoryFilter() {
-  const container = document.getElementById("categoryFilter");
-  container.innerHTML = "";
-  const allBtn = document.createElement("button");
-  allBtn.className = "cat-filter-btn" + (state.categoryFilter === "all" ? " active" : "");
-  allBtn.textContent = "Все";
-  allBtn.addEventListener("click", () => {
-    state.categoryFilter = "all";
-    renderCategoryFilter();
-    render();
-  });
-  container.appendChild(allBtn);
-  CATEGORY_LIST.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "cat-filter-btn" + (state.categoryFilter === cat ? " active" : "");
-    btn.textContent = cat;
-    btn.addEventListener("click", () => {
-      state.categoryFilter = cat;
-      renderCategoryFilter();
-      render();
-    });
-    container.appendChild(btn);
-  });
-}
-
-/* ================= НАВИГАЦИЯ ================= */
-document.getElementById("prevBtn").addEventListener("click", () => shift(-1));
-document.getElementById("nextBtn").addEventListener("click", () => shift(1));
-document.getElementById("todayBtn").addEventListener("click", () => {
-  state.anchor = new Date();
-  state.selected = startOfDay(new Date());
-  render();
-});
-
-function shift(dir) {
-  const d = state.anchor;
-  if (state.view === "month") d.setMonth(d.getMonth() + dir);
-  else if (state.view === "week") state.anchor = addDays(d, 7 * dir);
-  else state.anchor = addDays(d, dir);
-  render();
-}
-
-document.querySelectorAll(".view-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    state.view = btn.dataset.view;
-    if (state.selected) state.anchor = new Date(state.selected);
-    render();
-  });
-});
-
-document.getElementById("panelCloseBtn").addEventListener("click", () => {
-  state.selected = null;
-  render();
-});
-document.getElementById("panelAddBtn").addEventListener("click", () => {
-  openModal(state.selected || state.anchor);
-});
-
-/* ================= НАСТРОЙКИ ================= */
-const SETTINGS_KEY = "calendar_settings_v1";
-let settings = {
-  theme: "auto",
-  firstDay: 1,
-  weekend: "6, 0",
-  timeFormat: "24",
-  hourHeight: 56,
-};
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) settings = { ...settings, ...JSON.parse(raw) };
-  } catch (e) { /* ignore */ }
-  applySettings();
-}
-
-function saveSettings() {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  applySettings();
-}
-
-function applySettings() {
-  // Тема
-  const root = document.documentElement;
-  if (settings.theme === "dark") {
-    root.style.colorScheme = "dark";
-    root.removeAttribute("data-theme");
-    root.style.setProperty("--bg", "#1e1830");
-    root.style.setProperty("--bg-soft", "#241d3a");
-    root.style.setProperty("--surface", "#2b2344");
-    root.style.setProperty("--surface-2", "#332a52");
-    root.style.setProperty("--border", "#3d3360");
-    root.style.setProperty("--text", "#f0eaff");
-    root.style.setProperty("--text-muted", "#a89ec8");
-  } else if (settings.theme === "light") {
-    root.style.colorScheme = "light";
-    root.removeAttribute("data-theme");
-    root.style.setProperty("--bg", "#f7f4fb");
-    root.style.setProperty("--bg-soft", "#f0eaf9");
-    root.style.setProperty("--surface", "#ffffff");
-    root.style.setProperty("--surface-2", "#f4effc");
-    root.style.setProperty("--border", "#e4dbf2");
-    root.style.setProperty("--text", "#2e2545");
-    root.style.setProperty("--text-muted", "#8b7fa3");
-  } else if (settings.theme === "sepia" || settings.theme === "ocean" || settings.theme === "forest") {
-    root.style.colorScheme = "light";
-    root.style.cssText = "";
-    root.setAttribute("data-theme", settings.theme);
-  } else {
-    root.style.colorScheme = "";
-    root.style.cssText = "";
-    root.removeAttribute("data-theme");
-  }
-  if (typeof render === "function") render();
-}
-
-/* ================= НАСТРОЙКИ UI ================= */
-const settingsModal = document.getElementById("settingsModal");
-
-document.getElementById("settingsBtn").addEventListener("click", () => {
-  document.getElementById("setTheme").value = settings.theme;
-  document.getElementById("setFirstDay").value = settings.firstDay;
-  document.getElementById("setWeekend").value = settings.weekend;
-  document.getElementById("setTimeFormat").value = settings.timeFormat;
-  settingsModal.classList.add("open");
-});
-
-document.getElementById("settingsSave").addEventListener("click", () => {
-  settings.theme = document.getElementById("setTheme").value;
-  settings.firstDay = parseInt(document.getElementById("setFirstDay").value);
-  settings.weekend = document.getElementById("setWeekend").value;
-  settings.timeFormat = document.getElementById("setTimeFormat").value;
-  saveSettings();
-  settingsModal.classList.remove("open");
-  showToast("Настройки сохранены");
-});
-
-document.getElementById("settingsCancel").addEventListener("click", () => {
-  settingsModal.classList.remove("open");
-});
-
-settingsModal.addEventListener("mousedown", e => { if (e.target === settingsModal) settingsModal.classList.remove("open"); });
-
-/* ================= GIST UI ================= */
-const gistModal = document.getElementById("gistModal");
-
-document.getElementById("gistBtn").addEventListener("click", () => {
-  document.getElementById("gistId").value = gistConfig.id || "";
-  document.getElementById("gistToken").value = gistConfig.token || "";
-  gistModal.classList.add("open");
-  setTimeout(() => document.getElementById("gistId").focus(), 150);
-});
-
-document.getElementById("gistSyncBtn").addEventListener("click", async () => {
-  if (!gistConfig.id || !gistConfig.token) {
-    showToast("Сначала настройте Gist");
-    return;
-  }
-  showToast("Синхронизация...");
-  await gistDownload();
-  await gistUpload();
-  showToast("Синхронизация завершена");
-});
-
-document.getElementById("gistSave").addEventListener("click", () => {
-  gistConfig.id = document.getElementById("gistId").value.trim();
-  gistConfig.token = document.getElementById("gistToken").value.trim();
-  saveGistConfig();
-  gistModal.classList.remove("open");
-  if (gistConfig.id && gistConfig.token) {
-    gistUpload();
-  }
-  showToast(gistConfig.id ? "Gist подключён" : "Gist отключён");
-});
-
-document.getElementById("gistCancel").addEventListener("click", () => {
-  gistModal.classList.remove("open");
-});
-
-gistModal.addEventListener("mousedown", e => { if (e.target === gistModal) gistModal.classList.remove("open"); });
-
-/* ================= ТОСТ ================= */
-const toast = document.getElementById("toast");
-let toastTimer;
-function showToast(msg) {
-  toast.textContent = msg;
-  toast.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
-}
-
-/* ================= ВСПОМОГАТЕЛЬНОЕ ================= */
-function parseDateInput(s) {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
-// Локальная ISO-строка без Z — чтобы время не зависело от часового пояса
-function fmtLocalIso(d) {
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + "T" + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
-}
-
-function parseLocalIso(s) {
-  if (s instanceof Date) return s;
-  // Строка с явным поясом (Z, +03:00) — абсолютное время:
-  // парсим как есть, без перевода в локальное время
-  if (/[Zz]$|[+-]\d{2}:?\d{2}$/.test(String(s))) return new Date(s);
-  const [datePart, timePart] = String(s).split("T");
-  const [y, m, d] = datePart.split("-").map(Number);
-  const [hh, mm, ss] = (timePart || "00:00:00").split(":").map(Number);
-  return new Date(y, m - 1, d, hh, mm, ss || 0);
-}
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
-}
-
-/* ================= ЗАЩИТА ОТ ИНЪЕКЦИЙ ================= */
-
-// Очистка объекта от prototype pollution
-function sanitizeObject(obj) {
-  if (obj === null || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
-  const clean = {};
-  for (const key of Object.keys(obj)) {
-    // Пропустить опасные ключи
-    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-    clean[key] = sanitizeObject(obj[key]);
-  }
-  return clean;
-}
-
-// Валидация события
-function validateEvent(e) {
-  if (!e || typeof e !== "object") return null;
-  const title = String(e.title || "").trim().slice(0, 200);
-  if (!title) return null;
-  const start = parseLocalIso(e.start);
-  const end = e.end ? parseLocalIso(e.end) : new Date(start.getTime() + 3600000);
-  if (isNaN(start)) return null;
-  const validCats = ["purple", "amber", "pink", "lavender", "peach"];
-  const validEventCats = ["Конкурс в Москве", "Выездной конкурс", "Внутреннее мероприятие", "Выездное мероприятие", "Постановка", "Прочее"];
-  return {
-    id: String(e.id || uid()).slice(0, 50),
-    title,
-    start, end,
-    location: String(e.location || "").slice(0, 500),
-    description: String(e.description || "").slice(0, 2000),
-    category: validCats.includes(e.category) ? e.category : "lavender",
-    eventCategory: validEventCats.includes(e.eventCategory) ? e.eventCategory : "Прочее",
-    attachedFiles: Array.isArray(e.attachedFiles) ? e.attachedFiles.slice(0, 10) : [],
-  };
-}
-
-// Безопасная загрузка событий из localStorage
-function safeLoadEvents() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr)) return;
-    const sanitized = sanitizeObject(arr);
-    state.events = sanitized.map(e => {
-      const v = validateEvent(e);
-      if (!v) return null;
-      // Сохраняем прикреплённые файлы
-      if (Array.isArray(e.attachedFiles)) {
-        v.attachedFiles = e.attachedFiles.slice(0, 10);
-      }
-      return v;
-    }).filter(Boolean);
-  } catch (e) { /* повреждённые данные — начинаем с чистого листа */ }
-}
-
-// Безопасный импорт файлов
-function safeParseJSON(text) {
-  try {
-    const data = JSON.parse(text);
-    const arr = Array.isArray(data) ? data : (data.events || []);
-    const sanitized = sanitizeObject(arr);
-    return sanitized.map(validateEvent).filter(Boolean);
-  } catch (e) {
-    return [];
-  }
-}
-
-loadSettings();
-renderCategoryFilter();
-render();
-</script>
+<!-- Выбор области действия для повторяющегося события -->
+<div class="modal-overlay" id="scopeModal">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="scopeTitle">
+    <h2 id="scopeTitle">Повторяющееся событие</h2>
+    <p class="scope-text" id="scopeText"></p>
+    <div class="scope-actions">
+      <button class="btn-primary" data-scope="this">Только это событие</button>
+      <button class="btn-primary alt" data-scope="all">Вся серия</button>
+      <button class="btn-ghost" data-scope="cancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Порядок важен: скрипты классические (без ES-модулей), чтобы работать по file:// -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/recurrence.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/attachments.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/gist.js"></script>
+<script src="js/events.js"></script>
+<script src="js/render.js"></script>
+<script src="js/drag.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

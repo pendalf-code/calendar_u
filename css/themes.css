@@ -1,0 +1,119 @@
+/* Дизайн-токены и темы оформления.
+   Каждая тема обязана определять все переменные --bg … --c-peach. */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f7f4fb;
+  --bg-soft: #f0eaf9;
+  --surface: #ffffff;
+  --surface-2: #f4effc;
+  --border: #e4dbf2;
+  --text: #2e2545;
+  --text-muted: #8b7fa3;
+  --weekend-bg: #faf7fe;
+  --overlay: rgba(46, 37, 69, 0.35);
+
+  --c-purple: #8b5cf6;
+  --c-purple-soft: #a78bfa;
+  --c-amber: #f0b429;
+  --c-pink: #e879c9;
+  --c-lavender: #c4b5fd;
+  --c-peach: #fcd34d;
+
+  /* Производные от акцентного цвета — подстраиваются под тему */
+  --glow: color-mix(in srgb, var(--c-purple) 35%, transparent);
+  --glow-soft: color-mix(in srgb, var(--c-purple) 18%, transparent);
+  --line: color-mix(in srgb, var(--c-purple) 9%, transparent);
+
+  --radius: 16px;
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.44, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Тёмная (явный выбор) */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1e1830;
+  --bg-soft: #241d3a;
+  --surface: #2b2344;
+  --surface-2: #332a52;
+  --border: #3d3360;
+  --text: #f0eaff;
+  --text-muted: #a89ec8;
+  --weekend-bg: #262040;
+  --overlay: rgba(10, 6, 24, 0.6);
+}
+
+/* Системная тема: тёмная, если так настроена ОС */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #1e1830;
+    --bg-soft: #241d3a;
+    --surface: #2b2344;
+    --surface-2: #332a52;
+    --border: #3d3360;
+    --text: #f0eaff;
+    --text-muted: #a89ec8;
+    --weekend-bg: #262040;
+    --overlay: rgba(10, 6, 24, 0.6);
+  }
+}
+
+/* Сепия */
+:root[data-theme="sepia"] {
+  --bg: #f5efe0;
+  --bg-soft: #ede4d0;
+  --surface: #faf5e8;
+  --surface-2: #f0e8d4;
+  --border: #ddd0b8;
+  --text: #4a3f2f;
+  --text-muted: #8a7a60;
+  --weekend-bg: #f0e8d4;
+  --overlay: rgba(74, 63, 47, 0.35);
+  --c-purple: #a05c2c;
+  --c-purple-soft: #c07a3a;
+  --c-amber: #c49a3a;
+  --c-pink: #c47a6a;
+  --c-lavender: #d4c4a0;
+  --c-peach: #e0c070;
+}
+
+/* Океан */
+:root[data-theme="ocean"] {
+  --bg: #e8f0f5;
+  --bg-soft: #d8e5ee;
+  --surface: #f0f6fa;
+  --surface-2: #e0ecf4;
+  --border: #c0d4e0;
+  --text: #1e3a4a;
+  --text-muted: #5a7a8a;
+  --weekend-bg: #d8e5ee;
+  --overlay: rgba(30, 58, 74, 0.35);
+  --c-purple: #2a7a9a;
+  --c-purple-soft: #4a9ab5;
+  --c-amber: #3a9a8a;
+  --c-pink: #5a8aaa;
+  --c-lavender: #a0c4d4;
+  --c-peach: #70b0a0;
+}
+
+/* Лесная */
+:root[data-theme="forest"] {
+  --bg: #e8f0e8;
+  --bg-soft: #d8e5d8;
+  --surface: #f0f6f0;
+  --surface-2: #e0ece0;
+  --border: #c0d4c0;
+  --text: #1e3a1e;
+  --text-muted: #5a7a5a;
+  --weekend-bg: #d8e5d8;
+  --overlay: rgba(30, 58, 30, 0.35);
+  --c-purple: #3a7a3a;
+  --c-purple-soft: #5a9a5a;
+  --c-amber: #6a9a2a;
+  --c-pink: #7a8a4a;
+  --c-lavender: #a0c4a0;
+  --c-peach: #80b060;
+}
