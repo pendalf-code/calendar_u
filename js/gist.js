@@ -13,6 +13,8 @@ let gistConfig = { id: "", token: "" };
 let gistSyncTimer = null;
 let gistSyncing = false;
 let gistResync = false;
+let gistAuthBroken = false; // GitHub ответил 401: токен истёк или отозван
+const TOKEN_EXPIRED_MSG = "Токен истек - синхронизация не работает. Свяжитесь с разработчиком.";
 let gistFiles = {}; // список файлов Gist с последней синхронизации
 
 const gistReady = () => Boolean(gistConfig.id && gistConfig.token);
@@ -34,9 +36,11 @@ function saveGistConfig() {
 }
 
 function updateGistButton() {
-  document.getElementById("gistBtn").classList.toggle("connected", gistReady());
-  document.getElementById("menuBtn").classList.toggle("gist-on", gistReady());
-  document.getElementById("gistBtn").title = gistReady() ? "Gist подключён" : "Настроить GitHub Gist синхронизацию";
+  const ok = gistReady() && !gistAuthBroken;
+  document.getElementById("gistBtn").classList.toggle("connected", ok);
+  document.getElementById("menuBtn").classList.toggle("gist-on", ok);
+  document.getElementById("menuBtn").classList.toggle("gist-bad", gistReady() && gistAuthBroken);
+  document.getElementById("gistBtn").title = gistAuthBroken ? "Токен недействителен" : gistReady() ? "Gist подключён" : "Настроить GitHub Gist синхронизацию";
 }
 
 async function gistRequest(method, url, body) {
@@ -51,7 +55,9 @@ async function gistRequest(method, url, body) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || ("HTTP " + res.status));
+    const e = new Error(err.message || ("HTTP " + res.status));
+    e.status = res.status;
+    throw e;
   }
   return res.json();
 }
@@ -80,6 +86,7 @@ async function gistFetchAttachment(id) {
 // silent=true (фон, автосинхронизация) — тост только если что-то изменилось.
 async function gistSync({ silent = true } = {}) {
   if (!gistReady()) return;
+  if (gistAuthBroken && silent) return; // токен мёртв — автосинхронизацию не повторяем, ручная попытка разрешена
   if (gistSyncing) { gistResync = true; return; }
   gistSyncing = true;
   try {
@@ -142,7 +149,11 @@ async function gistSync({ silent = true } = {}) {
     }
   } catch (e) {
     console.error("Gist sync error:", e);
-    if (!silent) showToast("Ошибка синхронизации: " + e.message);
+    if (e.status === 401) {
+      gistAuthBroken = true;
+      updateGistButton();
+      showToast(TOKEN_EXPIRED_MSG, 9000);
+    } else if (!silent) showToast("Ошибка синхронизации: " + e.message);
     else if (e.message && !/Failed to fetch|NetworkError/.test(e.message)) showToast("Ошибка Gist: " + e.message);
   } finally {
     gistSyncing = false;

@@ -7,6 +7,7 @@ loadStoredEvents();
 fillCategorySelect(categoryFilterEl, true);
 fillCategorySelect(evCategorySelect, false);
 buildColorPicker();
+document.querySelectorAll(".select-wrapper select").forEach(enhanceSelect);
 syncFilterUi();
 
 loadGistConfig();

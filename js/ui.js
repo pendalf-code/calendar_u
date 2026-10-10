@@ -3,11 +3,11 @@
 /* ================= ТОСТ ================= */
 const toast = document.getElementById("toast");
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, ms = 2600) {
   toast.textContent = msg;
   toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
 }
 
 /* ================= МОДАЛЬНЫЕ ОКНА ================= */
@@ -465,6 +465,7 @@ document.getElementById("gistSyncBtn").addEventListener("click", () => {
 document.getElementById("gistSave").addEventListener("click", () => {
   gistConfig.id = document.getElementById("gistId").value.trim();
   gistConfig.token = document.getElementById("gistToken").value.trim();
+  gistAuthBroken = false; // введён новый токен — пробуем снова
   saveGistConfig();
   gistModal.classList.remove("open");
   showToast(gistReady() ? "Gist подключён" : "Gist отключён");

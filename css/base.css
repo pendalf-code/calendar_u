@@ -202,7 +202,8 @@ button:focus-visible, select:focus-visible, .month-cell:focus-visible,
 /* Кнопки действий: на широких экранах — иконки в ряд, на узких — выпадающее меню (см. responsive.css) */
 .header-menu { grid-area: menu; position: relative; display: flex; align-items: center; margin-left: auto; }
 .icon-btn.menu-btn { position: relative; }
-.menu-btn.gist-on::after {
+.menu-btn.gist-on::after,
+.menu-btn.gist-bad::after {
   content: "";
   position: absolute; top: 5px; right: 5px;
   width: 8px; height: 8px;
@@ -211,6 +212,7 @@ button:focus-visible, select:focus-visible, .month-cell:focus-visible,
   border: 2px solid var(--surface);
   box-sizing: content-box;
 }
+.menu-btn.gist-bad::after { background: #ef4444; }
 /* Действия (настройки, синхронизация, Gist, экспорт) — всегда в выпадающем меню «⋮» */
 .header-actions {
   display: none;
