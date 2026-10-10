@@ -63,7 +63,10 @@ function renderMonth() {
   const weekendDays = settings.weekend.split(",").map(Number);
 
   let html = '<div class="month-grid">';
-  for (let c = 0; c < 7; c++) html += `<div class="weekday-header">${DOW[(settings.firstDay + c) % 7]}</div>`;
+  for (let c = 0; c < 7; c++) {
+    const dow = (settings.firstDay + c) % 7;
+    html += `<div class="weekday-header${weekendDays.includes(dow) ? " weekend" : ""}">${DOW[dow]}</div>`;
+  }
 
   for (let i = 0; i < 42; i++) {
     const day = addDays(startDate, i);
@@ -122,6 +125,7 @@ function renderTimeGrid(days) {
     const cls = ["day-col-header"];
     if (isSameDay(day, today)) cls.push("today");
     if (state.selected && isSameDay(day, state.selected)) cls.push("selected");
+    if (weekendDays.includes(day.getDay())) cls.push("weekend");
     html += `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}"><div class="dow-name">${DOW[day.getDay()]}</div><div class="dow-num">${day.getDate()}</div></div>`;
   }
   html += '</div><div class="time-grid-body"><div class="hour-labels">';

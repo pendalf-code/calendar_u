@@ -18,7 +18,7 @@
 
 ## Правила кода
 
-1. **Темы** — атрибут `data-theme` на `<html>` (`dark`, `sepia`, `ocean`, `forest`; «светлая» и «системная» — по умолчанию). Все переменные (`--bg`, `--bg-soft`, `--surface`, `--surface-2`, `--border`, `--text`, `--text-muted`, `--weekend-bg`, `--overlay`, `--c-*`) определяются в `css/themes.css` для каждой темы. Цвета вне `themes.css` не хардкодить — только переменные (`--glow`, `--glow-soft`, `--line` — производные от `--c-purple`).
+1. **Темы** — атрибут `data-theme` на `<html>` (`dark`, `sepia`, `ocean`, `forest`; «светлая» и «системная» — по умолчанию). Все переменные (`--bg`, `--bg-soft`, `--surface`, `--surface-2`, `--border`, `--text`, `--text-muted`, `--weekend-accent`, `--weekend-strength`, `--overlay`, `--c-*`; `--weekend-bg` считается от `--surface`, `--weekend-accent` и `--weekend-strength`; акцент выходных берётся из палитры темы, не общий розовый) определяются в `css/themes.css` для каждой темы. Цвета вне `themes.css` не хардкодить — только переменные (`--glow`, `--glow-soft`, `--line` — производные от `--c-purple`; выходные — только через `--weekend-accent`/`--weekend-bg`).
 
 2. **Скролл** — `body { overflow: hidden }`, глобального скролла нет. Сетка дня/недели — единый скролл-контейнер `.time-grid-wrapper`: заголовок `.time-grid-header` приклеен сверху, колонка часов — слева, у заголовка и тела общий `min-width`. Панель дня скроллится сама (`max-height: 42dvh`).
 

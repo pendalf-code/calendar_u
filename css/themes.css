@@ -11,8 +11,11 @@
   --border: #e4dbf2;
   --text: #2e2545;
   --text-muted: #8b7fa3;
-  --weekend-bg: #faf7fe;
   --overlay: rgba(46, 37, 69, 0.35);
+  --weekend-accent: #b45309;  /* янтарь — второй цвет палитры */
+  --weekend-strength: 16%;
+  /* Выходные: фон — поверхность с заметной примесью акцента, подписи — сам акцент */
+  --weekend-bg: color-mix(in srgb, var(--weekend-accent) var(--weekend-strength), var(--surface));
 
   --c-purple: #8b5cf6;
   --c-purple-soft: #a78bfa;
@@ -41,8 +44,9 @@
   --border: #3d3360;
   --text: #f0eaff;
   --text-muted: #a89ec8;
-  --weekend-bg: #262040;
   --overlay: rgba(10, 6, 24, 0.6);
+  --weekend-accent: #fbbf24;
+  --weekend-strength: 14%;
 }
 
 /* Системная тема: тёмная, если так настроена ОС */
@@ -56,8 +60,9 @@
     --border: #3d3360;
     --text: #f0eaff;
     --text-muted: #a89ec8;
-    --weekend-bg: #262040;
     --overlay: rgba(10, 6, 24, 0.6);
+    --weekend-accent: #fbbf24;
+    --weekend-strength: 14%;
   }
 }
 
@@ -70,8 +75,9 @@
   --border: #ddd0b8;
   --text: #4a3f2f;
   --text-muted: #8a7a60;
-  --weekend-bg: #f0e8d4;
   --overlay: rgba(74, 63, 47, 0.35);
+  --weekend-accent: #a8741a;
+  --weekend-strength: 17%;
   --c-purple: #a05c2c;
   --c-purple-soft: #c07a3a;
   --c-amber: #c49a3a;
@@ -89,8 +95,9 @@
   --border: #c0d4e0;
   --text: #1e3a4a;
   --text-muted: #5a7a8a;
-  --weekend-bg: #d8e5ee;
   --overlay: rgba(30, 58, 74, 0.35);
+  --weekend-accent: #1f6f8f;
+  --weekend-strength: 22%;
   --c-purple: #2a7a9a;
   --c-purple-soft: #4a9ab5;
   --c-amber: #3a9a8a;
@@ -108,8 +115,9 @@
   --border: #c0d4c0;
   --text: #1e3a1e;
   --text-muted: #5a7a5a;
-  --weekend-bg: #d8e5d8;
   --overlay: rgba(30, 58, 30, 0.35);
+  --weekend-accent: #2f7d3a;
+  --weekend-strength: 22%;
   --c-purple: #3a7a3a;
   --c-purple-soft: #5a9a5a;
   --c-amber: #6a9a2a;

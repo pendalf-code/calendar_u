@@ -42,6 +42,10 @@
   box-shadow: 0 10px 24px var(--glow-soft);
 }
 .month-cell.weekend { background: var(--weekend-bg); }
+.month-cell.weekend:hover { background: color-mix(in srgb, var(--weekend-accent) 22%, var(--surface)); }
+.month-cell.weekend .day-num { color: var(--weekend-accent); }
+.month-cell.weekend.today .day-num { color: #fff; }
+.weekday-header.weekend { color: var(--weekend-accent); }
 .month-cell.other-month { opacity: 0.45; }
 .month-cell.other-month:hover { opacity: 0.8; }
 .month-cell.selected {
@@ -148,6 +152,9 @@
   background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
   color: #fff;
 }
+.day-col-header.weekend { background: var(--weekend-bg); border-color: color-mix(in srgb, var(--weekend-accent) 35%, var(--border)); }
+.day-col-header.weekend .dow-name, .day-col-header.weekend .dow-num { color: var(--weekend-accent); }
+.day-col-header.weekend.today .dow-num { color: #fff; }
 .dow-name { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; }
 .dow-num {
   font-size: 18px; font-weight: 700;
@@ -181,6 +188,7 @@
 }
 .day-column:hover { background: var(--surface-2); }
 .day-column.weekend { background: var(--weekend-bg); }
+.day-column.weekend:hover { background: color-mix(in srgb, var(--weekend-accent) 22%, var(--surface)); }
 .day-column.today { border-color: var(--c-purple-soft); }
 
 .hour-line {
