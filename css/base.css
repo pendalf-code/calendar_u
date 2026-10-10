@@ -202,7 +202,7 @@ button:focus-visible, select:focus-visible, .month-cell:focus-visible,
 /* Кнопки действий: на широких экранах — иконки в ряд, на узких — выпадающее меню (см. responsive.css) */
 .header-menu { grid-area: menu; position: relative; display: flex; align-items: center; margin-left: auto; }
 .icon-btn.menu-btn { position: relative; }
-.menu-btn.connected::after {
+.menu-btn.gist-on::after {
   content: "";
   position: absolute; top: 5px; right: 5px;
   width: 8px; height: 8px;
@@ -239,6 +239,8 @@ button:focus-visible, select:focus-visible, .month-cell:focus-visible,
   color: var(--text);
 }
 .header-actions .icon-btn:hover { background: var(--surface-2); transform: none; box-shadow: none; }
+.header-actions .icon-btn.primary { background: transparent; border: none; color: var(--text); box-shadow: none; }
+.header-actions .icon-btn.primary:hover { background: var(--surface-2); }
 .header-actions .icon-btn.primary svg { color: var(--c-purple); }
 .header-actions .icon-btn.connected { background: color-mix(in srgb, #22c55e 18%, transparent); color: inherit; }
 .header-actions .icon-btn.connected svg { color: #16a34a; }

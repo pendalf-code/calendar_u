@@ -35,7 +35,7 @@ function saveGistConfig() {
 
 function updateGistButton() {
   document.getElementById("gistBtn").classList.toggle("connected", gistReady());
-  document.getElementById("menuBtn").classList.toggle("connected", gistReady());
+  document.getElementById("menuBtn").classList.toggle("gist-on", gistReady());
   document.getElementById("gistBtn").title = gistReady() ? "Gist подключён" : "Настроить GitHub Gist синхронизацию";
 }
 
