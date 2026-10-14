@@ -34,9 +34,20 @@ document.getElementById("settingsCancel").addEventListener("click", () => settin
 /* ================= GIST ================= */
 const gistModal = document.getElementById("gistModal");
 
+// Подпись режима и подсказка в поле токена. Сам токен в поле не подставляется (не остаётся в DOM).
+function refreshGistModal() {
+  const hasToken = validGistToken(gistConfig.token);
+  document.getElementById("gistToken").placeholder = hasToken ? "токен сохранён (пусто = не менять)" : "ghp_... (только для редакторов)";
+  document.getElementById("gistMode").textContent = !gistReady() ? "Не подключено."
+    : hasToken ? "Режим: редактор — изменения уходят в общий календарь."
+    : "Режим: только просмотр — календарь только читается, править нельзя.";
+  document.getElementById("gistDisconnect").hidden = !gistReady() && !gistConfig.token;
+}
+
 document.getElementById("gistBtn").addEventListener("click", () => {
   document.getElementById("gistId").value = gistConfig.id;
-  document.getElementById("gistToken").value = gistConfig.token;
+  document.getElementById("gistToken").value = "";
+  refreshGistModal();
   gistModal.classList.add("open");
   setTimeout(() => document.getElementById("gistId").focus(), 150);
 });
@@ -49,15 +60,26 @@ document.getElementById("gistSyncBtn").addEventListener("click", () => {
 
 document.getElementById("gistSave").addEventListener("click", () => {
   const id = document.getElementById("gistId").value.trim();
-  const token = document.getElementById("gistToken").value.trim();
+  const typed = document.getElementById("gistToken").value.trim();
   if (id && !validGistId(id)) { showToast("Gist ID — только латинские буквы a–f и цифры"); return; }
-  if (token && !validGistToken(token)) { showToast("Токен содержит недопустимые символы"); return; }
+  if (typed && !validGistToken(typed)) { showToast("Токен содержит недопустимые символы"); return; }
+  if (!id) { showToast("Введите Gist ID (или нажмите «Отключить Gist»)"); return; }
   gistConfig.id = id;
-  gistConfig.token = token;
-  gistAuthBroken = false; // введён новый токен — пробуем снова
+  if (typed) { gistConfig.token = typed; gistAuthBroken = false; } // пустое поле — прежний токен остаётся; новый токен — пробуем снова
   saveGistConfig();
+  document.getElementById("gistToken").value = "";
   gistModal.classList.remove("open");
-  showToast(gistReady() ? "Gist подключён" : "Gist отключён");
-  if (gistReady()) gistSync({ silent: false });
+  showToast(gistCanWrite() ? "Gist подключён" : "Gist подключён: только просмотр");
+  gistSync({ silent: false });
 });
-document.getElementById("gistCancel").addEventListener("click", () => gistModal.classList.remove("open"));
+document.getElementById("gistDisconnect").addEventListener("click", () => {
+  disconnectGist();
+  document.getElementById("gistId").value = "";
+  document.getElementById("gistToken").value = "";
+  gistModal.classList.remove("open");
+  showToast("Gist отключён, токен удалён с этого устройства");
+});
+document.getElementById("gistCancel").addEventListener("click", () => {
+  document.getElementById("gistToken").value = "";
+  gistModal.classList.remove("open");
+});

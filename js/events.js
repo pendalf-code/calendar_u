@@ -38,6 +38,14 @@ function touchChanged(master, before) {
 
 const seriesMaster = inst => state.events.find(e => e.id === (inst.seriesId || inst.id));
 
+// Режим «только просмотр» (Gist без токена): правки не ушли бы в общий календарь и разошлись бы с остальными устройствами
+const READ_ONLY_MSG = "Режим «только просмотр»: чтобы править календарь, нужен токен редактора";
+function blockedByReadOnly() {
+  if (!gistReadOnly()) return false;
+  showToast(READ_ONLY_MSG);
+  return true;
+}
+
 function commitChange(message) {
   saveEvents();
   render();
@@ -45,6 +53,7 @@ function commitChange(message) {
 }
 
 function createEvent(data) {
+  if (blockedByReadOnly()) return;
   state.events.push(touch({ id: uid(), exdates: [], ...data }));
   commitChange("Событие добавлено");
 }
@@ -52,6 +61,7 @@ function createEvent(data) {
 // Изменить событие или экземпляр серии. patch — поля события (start/end/title/...).
 // Для экземпляра спрашиваем: только это вхождение или вся серия. Возвращает false, если пользователь отказался.
 async function applyEventChange(inst, patch, message = "Событие обновлено") {
+  if (blockedByReadOnly()) { render(); return false; }
   const master = seriesMaster(inst);
   if (!master) return false;
 
@@ -91,6 +101,7 @@ async function applyEventChange(inst, patch, message = "Событие обно�
 
 // Удаление с возможностью отмены: showUndo (ui.js) на UNDO_MS показывает кнопку «Отменить»
 async function deleteEvent(inst) {
+  if (blockedByReadOnly()) return;
   const master = seriesMaster(inst);
   if (!master) return;
 

@@ -4,7 +4,8 @@
    Файлы Gist:
    - calendar-events.json — события и «надгробия» удалённых (метаданные вложений внутри событий);
    - att-<id>.json        — по одному файлу на вложение: {name, type, size, data(base64)}.
-   Слияние идёт по id и updatedAt (см. mergeRecords в utils.js): правки с разных устройств не затирают друг друга. */
+   Слияние идёт по id и updatedAt (см. mergeRecords в utils.js): правки с разных устройств не затирают друг друга.
+   Режимы: редактор (ID + токен) читает и пишет; «только просмотр» (один ID) только читает — без Authorization и без PATCH. */
 
 const ATT_PREFIX = "att-";
 const attFileName = id => ATT_PREFIX + id + ".json";
@@ -20,7 +21,10 @@ let gistFiles = {}; // список файлов Gist с последней си
 // ID идёт в путь запроса, токен — в заголовок: пропускаем только допустимые форматы
 const validGistId = id => GIST_ID_RE.test(id);
 const validGistToken = t => GIST_TOKEN_RE.test(t);
-const gistReady = () => validGistId(gistConfig.id) && validGistToken(gistConfig.token);
+// Два режима: «редактор» (ID + токен: читает и пишет) и «только просмотр» (один ID: только читает, токен не нужен)
+const gistReady = () => validGistId(gistConfig.id);
+const gistCanWrite = () => gistReady() && validGistToken(gistConfig.token);
+const gistReadOnly = () => gistReady() && !validGistToken(gistConfig.token);
 
 function loadGistConfig() {
   try {
@@ -38,22 +42,33 @@ function saveGistConfig() {
   updateGistButton();
 }
 
+// Полностью забыть Gist на этом устройстве: ID и токен удаляются из localStorage (события и вложения остаются)
+function disconnectGist() {
+  gistConfig = { id: "", token: "" };
+  gistAuthBroken = false;
+  gistFiles = {};
+  clearTimeout(gistSyncTimer);
+  try { localStorage.removeItem(GIST_STORAGE_KEY); } catch (e) { /* ignore */ }
+  updateGistButton();
+}
+
 function updateGistButton() {
   const ok = gistReady() && !gistAuthBroken;
   document.getElementById("gistBtn").classList.toggle("connected", ok);
   document.getElementById("menuBtn").classList.toggle("gist-on", ok);
   document.getElementById("menuBtn").classList.toggle("gist-bad", gistReady() && gistAuthBroken);
-  document.getElementById("gistBtn").title = gistAuthBroken ? "Токен недействителен" : gistReady() ? "Gist подключён" : "Настроить GitHub Gist синхронизацию";
+  document.getElementById("gistBtn").title = gistAuthBroken ? "Токен недействителен"
+    : gistReadOnly() ? "Gist подключён: только просмотр"
+    : gistReady() ? "Gist подключён" : "Настроить GitHub Gist синхронизацию";
 }
 
 async function gistRequest(method, url, body) {
+  const headers = { "Accept": "application/vnd.github+json" };
+  if (body) headers["Content-Type"] = "application/json";
+  if (validGistToken(gistConfig.token)) headers["Authorization"] = "token " + gistConfig.token; // режим просмотра — без токена
   const res = await fetch("https://api.github.com" + url, {
     method,
-    headers: {
-      "Accept": "application/vnd.github+json",
-      "Content-Type": "application/json",
-      "Authorization": "token " + gistConfig.token,
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -131,28 +146,32 @@ async function gistSync({ silent = true } = {}) {
     }
     await migrateLegacyAttachments();
 
-    // Файл событий + удаление вложений, на которые больше никто не ссылается
-    const live = liveAttachmentIds();
-    const files = {};
-    if (changedRemote) files[GIST_FILE_NAME] = { content: JSON.stringify(serializeEvents(), null, 2) };
-    for (const name of Object.keys(gistFiles)) {
-      if (name.startsWith(ATT_PREFIX) && !live.has(name.slice(ATT_PREFIX.length, -".json".length))) files[name] = null;
-    }
-    if (Object.keys(files).length) await gistRequest("PATCH", "/gists/" + gistConfig.id, { files });
-
-    // Новые вложения — по одному запросу, чтобы сбой большого файла не ломал синхронизацию событий
+    // Запись в Gist — только у редактора (с токеном); в режиме просмотра только читаем
+    const canWrite = gistCanWrite();
     let uploaded = 0, failed = 0;
-    for (const id of live) {
-      if (gistFiles[attFileName(id)]) continue;
-      const rec = await attGet(id).catch(() => null);
-      if (!rec) continue;
-      try {
-        const content = JSON.stringify({ name: rec.name, type: rec.type, size: rec.size, data: await blobToBase64(rec.blob) });
-        await gistRequest("PATCH", "/gists/" + gistConfig.id, { files: { [attFileName(id)]: { content } } });
-        uploaded++;
-      } catch (err) {
-        failed++;
-        console.error("Вложение не выгружено в Gist:", err);
+    if (canWrite) {
+      // Файл событий + удаление вложений, на которые больше никто не ссылается
+      const live = liveAttachmentIds();
+      const files = {};
+      if (changedRemote) files[GIST_FILE_NAME] = { content: JSON.stringify(serializeEvents(), null, 2) };
+      for (const name of Object.keys(gistFiles)) {
+        if (name.startsWith(ATT_PREFIX) && !live.has(name.slice(ATT_PREFIX.length, -".json".length))) files[name] = null;
+      }
+      if (Object.keys(files).length) await gistRequest("PATCH", "/gists/" + gistConfig.id, { files });
+
+      // Новые вложения — по одному запросу, чтобы сбой большого файла не ломал синхронизацию событий
+      for (const id of live) {
+        if (gistFiles[attFileName(id)]) continue;
+        const rec = await attGet(id).catch(() => null);
+        if (!rec) continue;
+        try {
+          const content = JSON.stringify({ name: rec.name, type: rec.type, size: rec.size, data: await blobToBase64(rec.blob) });
+          await gistRequest("PATCH", "/gists/" + gistConfig.id, { files: { [attFileName(id)]: { content } } });
+          uploaded++;
+        } catch (err) {
+          failed++;
+          console.error("Вложение не выгружено в Gist:", err);
+        }
       }
     }
 
@@ -160,12 +179,13 @@ async function gistSync({ silent = true } = {}) {
     await gcAttachments();
 
     if (failed) showToast("Вложений не выгружено в Gist: " + failed + " (слишком большие?)");
-    else if (!silent || changedLocal || changedRemote || uploaded) {
-      showToast(changedLocal ? "Синхронизировано: получены изменения из Gist" : "Синхронизировано с Gist");
+    else if (!silent || changedLocal || (canWrite && changedRemote) || uploaded) {
+      showToast(changedLocal ? "Синхронизировано: получены изменения из Gist"
+        : canWrite ? "Синхронизировано с Gist" : "Календарь обновлён (только просмотр)");
     }
   } catch (e) {
     console.error("Gist sync error:", e);
-    if (e.status === 401) {
+    if (e.status === 401 && gistCanWrite()) {
       gistAuthBroken = true;
       updateGistButton();
       showToast(TOKEN_EXPIRED_MSG, 9000);
@@ -178,7 +198,7 @@ async function gistSync({ silent = true } = {}) {
 }
 
 function scheduleGistSync() {
-  if (!gistReady()) return;
+  if (!gistCanWrite()) return; // в режиме просмотра отправлять нечего
   clearTimeout(gistSyncTimer);
   gistSyncTimer = setTimeout(() => gistSync(), 2000); // debounce 2 секунды
 }

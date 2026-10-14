@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const JS_DIR = path.join(__dirname, "..", "js");
-const FILES = ["config", "utils", "recurrence", "holidays", "events"];
+const FILES = ["config", "utils", "recurrence", "settings", "holidays", "attachments", "gist", "events"];
 
 const EXPORTS = [
   "state", "MERGE_GROUP_NAMES", "fieldTime",
@@ -17,6 +17,9 @@ const EXPORTS = [
   "occursOn", "occurrencesIn", "makeInstance", "findEventById", "repeatLabel",
   "holidayName",
   "touch", "changedGroups", "createEvent", "applyEventChange", "deleteEvent",
+  "escapeHtml", "safeFileName", "safeMime", "sanitizeObject", "safeTimestamp", "normalizeAttachment", "normalizeSettings",
+  "validGistId", "validGistToken", "gistReady", "gistCanWrite", "gistReadOnly", "gistRequest",
+  "BASE64_RE", "base64ToBlob", "MAX_RECORDS", "MAX_FUTURE_MS", "MAX_ATTACHED_FILES",
 ];
 
 function loadApp(overrides = {}) {
@@ -30,7 +33,7 @@ function loadApp(overrides = {}) {
     ...overrides,
   };
   const source = FILES.map(f => fs.readFileSync(path.join(JS_DIR, f + ".js"), "utf8")).join("\n") +
-    `\nreturn { ${EXPORTS.join(", ")}, setSettings: v => { settings = v; }, getSettings: () => settings };`;
+    `\nreturn { ${EXPORTS.join(", ")}, setSettings: v => { settings = v; }, getSettings: () => settings, setGistConfig: c => { gistConfig = c; } };`;
   const app = new Function(...Object.keys(stubs), source)(...Object.values(stubs));
   app.calls = calls;
   app.stubs = stubs;

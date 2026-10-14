@@ -1,0 +1,21 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Синтаксис JS
+        run: for f in js/*.js; do node --check "$f"; done
+      - name: Тесты
+        run: node --test "tests/*.test.js"

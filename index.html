@@ -4,16 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com https://gist.githubusercontent.com data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src https://api.github.com https://gist.githubusercontent.com data:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>Календарь</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/themes.css?v=10">
-<link rel="stylesheet" href="css/base.css?v=10">
-<link rel="stylesheet" href="css/calendar.css?v=10">
-<link rel="stylesheet" href="css/modal.css?v=10">
-<link rel="stylesheet" href="css/select.css?v=10">
-<link rel="stylesheet" href="css/responsive.css?v=10">
+<script src="js/guard.js?v=12"></script>
+<link rel="stylesheet" href="css/themes.css?v=12">
+<link rel="stylesheet" href="css/base.css?v=12">
+<link rel="stylesheet" href="css/calendar.css?v=12">
+<link rel="stylesheet" href="css/modal.css?v=12">
+<link rel="stylesheet" href="css/select.css?v=12">
+<link rel="stylesheet" href="css/responsive.css?v=12">
 </head>
 <body>
 
@@ -202,15 +203,18 @@
 <div class="modal-overlay" id="gistModal">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gistModalTitle">
     <h2 id="gistModalTitle">GitHub Gist синхронизация</h2>
+    <p class="field-hint gist-mode" id="gistMode"></p>
     <div class="field">
       <label for="gistId">Gist ID</label>
-      <input type="text" id="gistId" placeholder="например, a1b2c3d4e5f6..." autocomplete="off">
+      <input type="text" id="gistId" placeholder="например, a1b2c3d4e5f6..." autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
     <div class="field">
-      <label for="gistToken">Personal Access Token</label>
-      <input type="password" id="gistToken" placeholder="ghp_..." autocomplete="off">
+      <label for="gistToken">Personal Access Token (только для редакторов)</label>
+      <input type="password" id="gistToken" placeholder="ghp_..." autocomplete="new-password" autocapitalize="off" spellcheck="false">
     </div>
+    <p class="field-hint">Только просмотр: введите один Gist ID, токен не нужен. Токен выдаёт владелец календаря.</p>
     <div class="modal-actions">
+      <button class="btn-ghost" id="gistDisconnect" hidden>Отключить Gist</button>
       <button class="btn-ghost" id="gistCancel">Отмена</button>
       <button class="btn-primary" id="gistSave">Сохранить</button>
     </div>
@@ -309,23 +313,23 @@
 </div>
 
 <!-- Порядок важен: скрипты классические (без ES-модулей), чтобы работать по file:// -->
-<script src="js/config.js?v=10"></script>
-<script src="js/utils.js?v=10"></script>
-<script src="js/recurrence.js?v=10"></script>
-<script src="js/settings.js?v=10"></script>
-<script src="js/holidays.js?v=10"></script>
-<script src="js/attachments.js?v=10"></script>
-<script src="js/storage.js?v=10"></script>
-<script src="js/gist.js?v=10"></script>
-<script src="js/events.js?v=10"></script>
-<script src="js/render.js?v=10"></script>
-<script src="js/drag.js?v=10"></script>
-<script src="js/select.js?v=10"></script>
-<script src="js/ui.js?v=10"></script>
-<script src="js/attachments-ui.js?v=10"></script>
-<script src="js/modal.js?v=10"></script>
-<script src="js/search.js?v=10"></script>
-<script src="js/settings-ui.js?v=10"></script>
-<script src="js/main.js?v=10"></script>
+<script src="js/config.js?v=12"></script>
+<script src="js/utils.js?v=12"></script>
+<script src="js/recurrence.js?v=12"></script>
+<script src="js/settings.js?v=12"></script>
+<script src="js/holidays.js?v=12"></script>
+<script src="js/attachments.js?v=12"></script>
+<script src="js/storage.js?v=12"></script>
+<script src="js/gist.js?v=12"></script>
+<script src="js/events.js?v=12"></script>
+<script src="js/render.js?v=12"></script>
+<script src="js/drag.js?v=12"></script>
+<script src="js/select.js?v=12"></script>
+<script src="js/ui.js?v=12"></script>
+<script src="js/attachments-ui.js?v=12"></script>
+<script src="js/modal.js?v=12"></script>
+<script src="js/search.js?v=12"></script>
+<script src="js/settings-ui.js?v=12"></script>
+<script src="js/main.js?v=12"></script>
 </body>
 </html>

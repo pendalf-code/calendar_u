@@ -34,7 +34,7 @@
 
 8. **Время событий** — «настенное» время ровно как ввёл пользователь, без перевода между поясами: создание — `parseLocalIso(date + "T" + time)`; хранение — локальный ISO без пояса (`fmtLocalIso`); чтение — `parseLocalIso` берёт компоненты из строки и отбрасывает суффикс пояса. `new Date(string)` для событий не использовать. Отображение по дню — `eventSegment()` (обрезка по суткам).
 
-9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`, имя — `safeFileName()`. Ответы Gist недоверенные: ограничивать размер (`gistReadFile`), base64 проверять (`base64ToBlob`), `raw_url` — только `GIST_RAW_ORIGIN`; Gist ID/токен — `validGistId`/`validGistToken`. Лимиты — в `config.js` (`MAX_RECORDS`, `MAX_JSON_DEPTH`, …). В `index.html` действует CSP (`script-src 'self'`): inline-скрипты и обработчики `onclick=` запрещены, новый внешний хост — только осознанно, добавив его в `connect-src`.
+9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`, имя — `safeFileName()`. Ответы Gist недоверенные: ограничивать размер (`gistReadFile`), base64 проверять (`base64ToBlob`), `raw_url` — только `GIST_RAW_ORIGIN`; Gist ID/токен — `validGistId`/`validGistToken`. Лимиты — в `config.js` (`MAX_RECORDS`, `MAX_JSON_DEPTH`, …). В `index.html` действует CSP (`script-src 'self'`; `style-src 'self'` + `style-src-attr 'unsafe-inline'` — inline только как атрибут `style=""`, не `<style>`; `img-src 'self'`): inline-скрипты и обработчики `onclick=` запрещены, новый внешний хост — только осознанно, добавив его в `connect-src`. Метки `updatedAt`/`fieldTimes` из внешних данных — только через `safeTimestamp()` (конечное число не дальше `MAX_FUTURE_MS` вперёд), MIME — только через `safeMime()` (`utils.js`), массивы из внешних данных усекать до `.map`. Токен Gist в DOM не подставлять (поле всегда пустое), не логировать; сбросить его можно только `disconnectGist()`.
 
 10. **Повторяющиеся события** — серия хранится одной записью (мастер: `start`/`end` первого вхождения + `repeat` + `exdates`); вхождения разворачиваются на лету в экземпляры с id `<id>@<YYYY-MM-DD>` (`recurrence.js`). Символ `@` зарезервирован (`cleanId` его вырезает). В DOM и в `data-id` всегда id экземпляра; искать — `findEventById()`. Изменение/удаление экземпляра — только через `applyEventChange()`/`deleteEvent()` (они спрашивают «это событие / вся серия»).
 
@@ -58,6 +58,10 @@
 
 20. **Тесты** (`tests/*.test.js`, запуск `node --test "tests/*.test.js"`) грузят настоящие `config/utils/recurrence/holidays/events.js` через `tests/helpers.js` (скрипты склеиваются в одну функцию, UI-функции — заглушки). Новую чистую логику — с тестом; в тестируемых файлах нет обращений к DOM на верхнем уровне (иначе добавить заглушку в `helpers.js`).
 
+21. **Режимы Gist** (`gist.js`) — `gistReady()` (есть корректный ID), `gistCanWrite()` (ID + токен — «редактор»), `gistReadOnly()` (ID без токена — «только просмотр»). В режиме просмотра `gistRequest` не шлёт `Authorization`, `gistSync` только скачивает и сливает в локальные данные (без PATCH/выгрузки вложений), `scheduleGistSync` ничего не планирует, а `createEvent`/`applyEventChange`/`deleteEvent`/`openModal` отказывают через `blockedByReadOnly()` (`events.js`). Новый путь изменения данных обязан проходить через эти функции или проверять `blockedByReadOnly()`. Токен нужен только редакторам — не требовать его там, где хватает чтения.
+
+22. **Защита от встраивания** — `js/guard.js` подключается первым (в `<head>`), при `window.top !== window.self` прячет страницу и ставит `window.__framed`; `main.js` в этом случае приложение не запускает (`startApp()` только если не `__framed`). Заголовков на Pages нет, это единственная защита от clickjacking. Не подключать новые скрипты раньше `guard.js`.
+
 ## Проверки перед коммитом
 
 - [ ] `node --check js/*.js` без ошибок, `node --test "tests/*.test.js"` зелёный, консоль браузера чистая
@@ -72,6 +76,8 @@
 - [ ] Вид «Список»: окно 30 дней, праздники подписаны, стрелки листают, создание из списка
 - [ ] Праздники РФ подсвечены как выходные, отключаются в настройках
 - [ ] Вложение сохраняется, скачивается, переживает перезагрузку
+- [ ] Режим «только просмотр» (Gist ID без токена): календарь читается, правки блокируются, запросов с `Authorization` нет; «Отключить Gist» стирает ключ `calendar_gist_config_v1`
+- [ ] Страница внутри чужого `<iframe>` (другой origin) пустая; консоль без нарушений CSP
 - [ ] Адаптивность: 320, 375, 768, 1024, 1440 px и ландшафт телефона; меню «⋮» открывается и закрывается
 
 ## Темы оформления
@@ -99,7 +105,8 @@ css/
   modal.css          модалки, формы, повторение, тост
   select.css         кастомные выпадающие списки
   responsive.css     все медиазапросы (подключается последним)
-js/                  порядок = порядок <script> в index.html
+js/                  порядок = порядок <script> в index.html (guard.js — в <head>, первым)
+  guard.js           защита от встраивания в чужой <iframe>
   config.js          константы, state, DEFAULT_SETTINGS, ICONS
   utils.js           даты, escapeHtml, validateEvent, normalizeRecords, mergeRecords, eventsForDay, layoutEvents
   recurrence.js      повторения: occursOn, occurrencesIn, findEventById, repeatLabel
@@ -118,7 +125,9 @@ js/                  порядок = порядок <script> в index.html
   search.js          фильтр по категориям и поиск
   settings-ui.js     окна настроек и Gist
   main.js            инициализация
-tests/               node:test: helpers.js (загрузчик скриптов) и *.test.js
+tests/               node:test: helpers.js (загрузчик скриптов; грузит и gist/attachments/settings) и *.test.js (security.test.js — защитные функции и режимы Gist)
+SECURITY.md          как сообщить об уязвимости, модель угроз
+.github/workflows/   check.yml: node --check и тесты на push/PR
 ```
 
 Куда класть код: стили — в тематический файл, медиазапросы — в `responsive.css`; чистые функции дат/данных — `utils.js`/`recurrence.js`; изменение данных — `events.js`; рисование DOM — `render.js`; обработчики — `ui.js`/`drag.js`.
@@ -143,7 +152,10 @@ tests/               node:test: helpers.js (загрузчик скриптов)
 | `renderAgenda()` / `buildEventCard()` | render.js | Вид «Список»; карточка события (панель дня и список) |
 | `holidayName()` | holidays.js | Праздник РФ для даты или `null` |
 | `applyEventChange()` / `deleteEvent()` / `createEvent()` | events.js | Единственная точка изменения данных |
-| `gistSync()` | gist.js | Скачать → слить → записать (+ вложения) |
+| `gistSync()` | gist.js | Скачать → слить → записать (+ вложения); в режиме просмотра только скачать и слить |
+| `gistReady()` / `gistCanWrite()` / `gistReadOnly()` / `disconnectGist()` | gist.js | Режимы Gist и полное отключение |
+| `blockedByReadOnly()` | events.js | Отказ правки в режиме просмотра (тост) |
+| `safeTimestamp()` / `safeMime()` | utils.js | Метки времени и MIME из внешних данных |
 | `attPut/attGet/…`, `downloadAttachment()` | attachments.js | IndexedDB |
 | `normalizeDetails()` | utils.js | Подробности выездного конкурса: известные ключи, непустые строки |
 | `buildDetailsFields()` / `openDetails()` | ui.js | Форма «Подробности» (по `TRIP_FIELDS`) |

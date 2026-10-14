@@ -107,24 +107,37 @@ function normalizeDetails(d) {
   return out;
 }
 
+// MIME из внешних данных: только type/subtype, иначе application/octet-stream (всегда строка)
+const safeMime = t => {
+  const s = typeof t === "string" ? t : "";
+  return /^[\w.+-]+\/[\w.+-]+$/.test(s) ? s : "application/octet-stream";
+};
+
 // Вложение: новый формат {id,name,size,type} (файл лежит в IndexedDB) или устаревший {name,dataUrl}
 function normalizeAttachment(f) {
   if (!f || typeof f.name !== "string") return null;
   const name = safeFileName(f.name);
   if (typeof f.dataUrl === "string" && f.dataUrl.startsWith("data:")) return { name, dataUrl: f.dataUrl };
   if (typeof f.id === "string" && /^[\w-]{1,60}$/.test(f.id)) {
-    return { id: f.id, name, size: Number(f.size) || 0, type: String(f.type || "").slice(0, 100) };
+    return { id: f.id, name, size: Number(f.size) || 0, type: safeMime(f.type) };
   }
   return null;
 }
 
-// Метки времени по группам полей (см. MERGE_GROUPS): только известные группы с положительным числом; нет меток — null
+// Метка времени (мс): конечное положительное число не дальше года вперёд. Иначе 0 (нет метки).
+// Без верхней границы запись с Infinity/1e300 всегда выигрывала бы слияние и не удалялась как «надгробие».
+function safeTimestamp(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 && n <= Date.now() + MAX_FUTURE_MS ? n : 0;
+}
+
+// Метки времени по группам полей (см. MERGE_GROUPS): только известные группы с допустимым числом; нет меток — null
 function normalizeFieldTimes(ft) {
   if (!ft || typeof ft !== "object") return null;
   const out = {};
   for (const g of MERGE_GROUP_NAMES) {
-    const n = Number(ft[g]);
-    if (n > 0) out[g] = n;
+    const n = safeTimestamp(ft[g]);
+    if (n) out[g] = n;
   }
   return Object.keys(out).length ? out : null;
 }
@@ -156,11 +169,12 @@ function validateEvent(e) {
     category: CATEGORIES[e.category] ? e.category : DEFAULT_COLOR,
     eventCategory,
     details: eventCategory === TRIP_CATEGORY ? normalizeDetails(e.details) : {},
-    attachedFiles: (Array.isArray(e.attachedFiles) ? e.attachedFiles : [])
+    // slice до map: огромный массив из внешних данных не обрабатывается целиком
+    attachedFiles: (Array.isArray(e.attachedFiles) ? e.attachedFiles : []).slice(0, MAX_ATTACHED_FILES * 4)
       .map(normalizeAttachment).filter(Boolean).slice(0, MAX_ATTACHED_FILES),
     repeat: normalizeRepeat(e.repeat),
-    exdates: (Array.isArray(e.exdates) ? e.exdates : []).map(String).filter(k => DATE_KEY_RE.test(k)).slice(0, 1000),
-    updatedAt: Number(e.updatedAt) > 0 ? Number(e.updatedAt) : 0, // 0 — запись без метки (старый формат)
+    exdates: (Array.isArray(e.exdates) ? e.exdates : []).slice(0, 4000).map(String).filter(k => DATE_KEY_RE.test(k)).slice(0, 1000),
+    updatedAt: safeTimestamp(e.updatedAt), // 0 — запись без метки (старый формат)
     ...(fieldTimes ? { fieldTimes } : {}),
   };
 }
@@ -173,7 +187,7 @@ function normalizeRecords(arr) {
   for (const raw of sanitizeObject(arr).slice(0, MAX_RECORDS * 2)) {
     if (events.length >= MAX_RECORDS && tombstones.length >= MAX_RECORDS) break;
     if (raw && raw.deleted === true && raw.id) {
-      if (tombstones.length < MAX_RECORDS) tombstones.push({ id: cleanId(raw.id), updatedAt: Number(raw.updatedAt) || 0 });
+      if (tombstones.length < MAX_RECORDS) tombstones.push({ id: cleanId(raw.id), updatedAt: safeTimestamp(raw.updatedAt) });
     } else if (events.length < MAX_RECORDS) {
       const v = validateEvent(raw);
       if (v) events.push(v);

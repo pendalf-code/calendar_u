@@ -86,6 +86,7 @@ const GIST_ID_RE = /^[0-9a-fA-F]{1,64}$/; // ID попадает в путь з�
 const GIST_TOKEN_RE = /^[\w-]{1,255}$/;   // ghp_…, github_pat_…
 const GIST_RAW_ORIGIN = "https://gist.githubusercontent.com/";
 const TOMBSTONE_TTL_MS = 90 * 24 * 3600 * 1000; // сколько хранить «надгробия» удалённых событий
+const MAX_FUTURE_MS = 365 * 24 * 3600 * 1000;   // метки updatedAt/fieldTimes дальше года вперёд считаются мусором (часы устройств могут врать, но не на столько)
 const MIN_EVENT_HEIGHT = 22; // px, минимальная высота события в сетке
 
 // Ключи localStorage

@@ -46,7 +46,7 @@ eventFileInput.addEventListener("change", () => {
     if (file.size > MAX_ATTACH_BYTES) { showToast("«" + file.name + "» больше " + fmtSize(MAX_ATTACH_BYTES)); continue; }
     const id = newAttachmentId();
     pendingFiles.set(id, file);
-    attachedFiles.push({ id, name: safeFileName(file.name), size: file.size, type: file.type });
+    attachedFiles.push({ id, name: safeFileName(file.name), size: file.size, type: safeMime(file.type) });
   }
   eventFileInput.value = "";
   updateAttachButton();
@@ -60,7 +60,7 @@ async function persistPendingFiles() {
       const idx = attachedFiles.findIndex(f => f.id === id);
       if (idx === -1) continue;
       try {
-        await attPut({ id, name: attachedFiles[idx].name, type: file.type, size: file.size, blob: file });
+        await attPut({ id, name: attachedFiles[idx].name, type: safeMime(file.type), size: file.size, blob: file });
       } catch (err) {
         console.error("IndexedDB:", err);
         showToast("Не удалось сохранить файл «" + file.name + "» в браузере");

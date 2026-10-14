@@ -55,7 +55,7 @@ function blobToBase64(blob) {
   });
 }
 
-const safeMime = t => (/^[\w.+-]+\/[\w.+-]+$/.test(String(t || "")) ? t : "application/octet-stream");
+// safeMime — в utils.js (нужен и normalizeAttachment)
 const BASE64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
 // b64 приходит из Gist: перед подстановкой в data:-URL проверяем алфавит (иначе можно «выйти» из base64-части URL)
 async function base64ToBlob(b64, type) {
@@ -72,7 +72,8 @@ async function migrateLegacyAttachments() {
       if (!f.dataUrl) continue;
       try {
         const blob = await (await fetch(f.dataUrl)).blob();
-        const meta = { id: newAttachmentId(), name: f.name, size: blob.size, type: blob.type };
+        if (blob.size > MAX_ATTACH_BYTES) { console.warn("Старое вложение больше лимита, не перенесено:", f.name); continue; }
+        const meta = { id: newAttachmentId(), name: f.name, size: blob.size, type: safeMime(blob.type) };
         await attPut({ ...meta, blob });
         e.attachedFiles[i] = meta;
         changed = true;

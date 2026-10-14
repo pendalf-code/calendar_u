@@ -118,6 +118,7 @@ document.getElementById("detailsSave").addEventListener("click", () => {
 
 /* ---------- Открытие / закрытие ---------- */
 function openModal(day, eventToEdit = null, preset = null) {
+  if (blockedByReadOnly()) return; // иначе пользователь заполнит форму, а сохранить не сможет
   editingInst = eventToEdit;
   const ev = eventToEdit;
   const master = ev ? (seriesMaster(ev) || ev) : null; // настройки повторения живут в мастере серии
