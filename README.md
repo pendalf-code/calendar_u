@@ -64,7 +64,7 @@ manifest.webmanifest  описание приложения для устано�
 sw.js               service worker: офлайн-кэш оболочки
 assets/
   icon.svg          исходник иконки «Ю» (квадрат, из него сделаны PNG)
-  icon-180.png, icon-192.png, icon-512.png   иконки приложения
+  touch-icon.png, icon-192.png, icon-512.png   иконки приложения
   favicon.svg       та же иконка со скруглёнными углами
 css/                порядок подключения важен
   themes.css        дизайн-токены и темы (--bg, --c-*, …)
