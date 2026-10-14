@@ -13,7 +13,7 @@
 6. **Документация**: после изменения поведения, структуры или правил обнови `README.md` (для пользователя) и этот файл (для разработки). Таблицы «Структура» и «Основные функции» должны соответствовать коду.
 7. **Git**: коммитить и пушить только по просьбе пользователя. Сообщения коммитов — кратко, по сути изменения.
 8. **Объём**: не добавлять фич и рефакторингов сверх просьбы; найденные «заодно» проблемы — упомянуть в ответе, а не чинить молча, если это не мелочь в тех же строках.
-9. **Кэш GitHub Pages**: ресурсы в `index.html` подключены с `?v=N`. При каждом изменении css/js поднимай `N` во всех ссылках (иначе пользователи до 10 минут видят старые файлы вперемешку с новой разметкой).
+9. **Кэш GitHub Pages**: ресурсы в `index.html` подключены с `?v=N`. При каждом изменении css/js поднимай `N` во всех ссылках (иначе пользователи до 10 минут видят старые файлы вперемешку с новой разметкой). Service worker (`sw.js`) сам берёт список файлов из `index.html`, правок в нём при этом не нужно.
 10. **Данные пользователя** (`localStorage`, IndexedDB, Gist) нельзя ломать: меняешь формат — пиши миграцию и читай старый формат (как `migrateLegacyAttachments`, события без `updatedAt`).
 
 ## Правила кода
@@ -34,7 +34,7 @@
 
 8. **Время событий** — «настенное» время ровно как ввёл пользователь, без перевода между поясами: создание — `parseLocalIso(date + "T" + time)`; хранение — локальный ISO без пояса (`fmtLocalIso`); чтение — `parseLocalIso` берёт компоненты из строки и отбрасывает суффикс пояса. `new Date(string)` для событий не использовать. Отображение по дню — `eventSegment()` (обрезка по суткам).
 
-9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`, имя — `safeFileName()`. Ответы Gist недоверенные: ограничивать размер (`gistReadFile`), base64 проверять (`base64ToBlob`), `raw_url` — только `GIST_RAW_ORIGIN`; Gist ID/токен — `validGistId`/`validGistToken`. Лимиты — в `config.js` (`MAX_RECORDS`, `MAX_JSON_DEPTH`, …). В `index.html` действует CSP (`script-src 'self'`; `style-src 'self'` + `style-src-attr 'unsafe-inline'` — inline только как атрибут `style=""`, не `<style>`; `img-src 'self'`): inline-скрипты и обработчики `onclick=` запрещены, новый внешний хост — только осознанно, добавив его в `connect-src`. Метки `updatedAt`/`fieldTimes` из внешних данных — только через `safeTimestamp()` (конечное число не дальше `MAX_FUTURE_MS` вперёд), MIME — только через `safeMime()` (`utils.js`), массивы из внешних данных усекать до `.map`. Токен Gist в DOM не подставлять (поле всегда пустое), не логировать; сбросить его можно только `disconnectGist()`.
+9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`, имя — `safeFileName()`. Ответы Gist недоверенные: ограничивать размер (`gistReadFile`), base64 проверять (`base64ToBlob`), `raw_url` — только `GIST_RAW_ORIGIN`; Gist ID/токен — `validGistId`/`validGistToken`. Лимиты — в `config.js` (`MAX_RECORDS`, `MAX_JSON_DEPTH`, …). В `index.html` действует CSP (`script-src 'self'`; `style-src 'self'` + `style-src-attr 'unsafe-inline'` — inline только как атрибут `style=""`, не `<style>`; `img-src 'self'`): inline-скрипты и обработчики `onclick=` запрещены, новый внешний хост — только осознанно, добавив его в `connect-src`; манифест разрешён через `manifest-src 'self'`. Метки `updatedAt`/`fieldTimes` из внешних данных — только через `safeTimestamp()` (конечное число не дальше `MAX_FUTURE_MS` вперёд), MIME — только через `safeMime()` (`utils.js`), массивы из внешних данных усекать до `.map`. Токен Gist в DOM не подставлять (поле всегда пустое), не логировать; сбросить его можно только `disconnectGist()`.
 
 10. **Повторяющиеся события** — серия хранится одной записью (мастер: `start`/`end` первого вхождения + `repeat` + `exdates`); вхождения разворачиваются на лету в экземпляры с id `<id>@<YYYY-MM-DD>` (`recurrence.js`). Символ `@` зарезервирован (`cleanId` его вырезает). В DOM и в `data-id` всегда id экземпляра; искать — `findEventById()`. Изменение/удаление экземпляра — только через `applyEventChange()`/`deleteEvent()` (они спрашивают «это событие / вся серия»).
 
@@ -62,6 +62,8 @@
 
 22. **Защита от встраивания** — `js/guard.js` подключается первым (в `<head>`), при `window.top !== window.self` прячет страницу и ставит `window.__framed`; `main.js` в этом случае приложение не запускает (`startApp()` только если не `__framed`). Заголовков на Pages нет, это единственная защита от clickjacking. Не подключать новые скрипты раньше `guard.js`.
 
+23. **PWA** — `manifest.webmanifest` + `sw.js` (оба в корне, чтобы scope охватывал всё приложение) + иконки `assets/icon-*.png`, `apple-touch-icon.png`; регистрация — `registerServiceWorker()` в `main.js` (только `http(s):`, по `file://` пропускается). `sw.js`: страница — сначала сеть (`cache: "no-cache"`), без сети копия из кэша; файлы `js/`/`css/` — сначала кэш (адреса версионированы `?v=N`); при установке и при каждой загрузке `index.html` лишние версии чистятся (`prune`). Чужие origin (`api.github.com`) service worker не трогает — Gist всегда напрямую. Иконки — PNG из `assets/icon.svg`: `msedge --headless --screenshot=… --window-size=N,N file:///…/icon.svg`; глиф «Ю» — обводка (без шрифтов) и укладывается в безопасную зону maskable (круг 80 %). Цвет `theme-color` = `--bg` текущей темы (`syncThemeColor()` в `settings.js`, не хардкодить). Синхронизация Gist, кроме старта и правки, идёт при возврате в приложение (`gistSyncOnVisibility`, не чаще `GIST_FOCUS_SYNC_MS`), при `online` и при уходе в фон с неотправленной правкой.
+
 ## Проверки перед коммитом
 
 - [ ] `node --check js/*.js` без ошибок, `node --test "tests/*.test.js"` зелёный, консоль браузера чистая
@@ -79,6 +81,7 @@
 - [ ] Режим «только просмотр» (Gist ID без токена): календарь читается, правки блокируются, запросов с `Authorization` нет; «Отключить Gist» стирает ключ `calendar_gist_config_v1`
 - [ ] Страница внутри чужого `<iframe>` (другой origin) пустая; консоль без нарушений CSP
 - [ ] Адаптивность: 320, 375, 768, 1024, 1440 px и ландшафт телефона; меню «⋮» открывается и закрывается
+- [ ] PWA (по http, не file://): service worker активен, в кэше `calendar-shell` есть `index.html` и все `js/`/`css/` из `index.html`, перезагрузка без сети открывает календарь
 
 ## Темы оформления
 
@@ -95,9 +98,11 @@
 
 ```
 index.html           разметка, подключение css/js
+manifest.webmanifest описание PWA (имя, иконки, цвета)
+sw.js                service worker: офлайн-кэш оболочки
 CLAUDE.md            этот файл
 README.md            описание для пользователя
-assets/favicon.svg
+assets/              icon.svg (исходник иконки «Ю»), icon-192/512.png, apple-touch-icon.png, favicon.svg
 css/
   themes.css         токены и темы
   base.css           сброс, шапка, кнопки, поиск, фильтр, меню действий
@@ -153,6 +158,8 @@ SECURITY.md          как сообщить об уязвимости, моде
 | `holidayName()` | holidays.js | Праздник РФ для даты или `null` |
 | `applyEventChange()` / `deleteEvent()` / `createEvent()` | events.js | Единственная точка изменения данных |
 | `gistSync()` | gist.js | Скачать → слить → записать (+ вложения); в режиме просмотра только скачать и слить |
+| `gistSyncOnVisibility()` | gist.js | Синхронизация при возврате в приложение; сброс отложенной отправки при уходе в фон |
+| `registerServiceWorker()` / `syncThemeColor()` | main.js / settings.js | PWA: регистрация `sw.js`; `theme-color` по теме |
 | `gistReady()` / `gistCanWrite()` / `gistReadOnly()` / `disconnectGist()` | gist.js | Режимы Gist и полное отключение |
 | `blockedByReadOnly()` | events.js | Отказ правки в режиме просмотра (тост) |
 | `safeTimestamp()` / `safeMime()` | utils.js | Метки времени и MIME из внешних данных |

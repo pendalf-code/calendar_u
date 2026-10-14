@@ -16,6 +16,6 @@ jobs:
         with:
           node-version: 20
       - name: Синтаксис JS
-        run: for f in js/*.js; do node --check "$f"; done
+        run: for f in js/*.js sw.js; do node --check "$f"; done
       - name: Тесты
         run: node --test "tests/*.test.js"

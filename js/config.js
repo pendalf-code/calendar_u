@@ -82,6 +82,7 @@ const MAX_ATTACH_BYTES = 5 * 1024 * 1024; // лимит одного вложе�
 const MAX_RECORDS = 5000;                 // событий и «надгробий» отдельно
 const MAX_JSON_DEPTH = 12;                // глубже — ключ отбрасывается (sanitizeObject)
 const MAX_GIST_EVENTS_BYTES = 10 * 1024 * 1024;
+const GIST_FOCUS_SYNC_MS = 30 * 1000;     // возврат в приложение чаще раза в 30 с повторную синхронизацию не запускает
 const GIST_ID_RE = /^[0-9a-fA-F]{1,64}$/; // ID попадает в путь запроса — только hex
 const GIST_TOKEN_RE = /^[\w-]{1,255}$/;   // ghp_…, github_pat_…
 const GIST_RAW_ORIGIN = "https://gist.githubusercontent.com/";

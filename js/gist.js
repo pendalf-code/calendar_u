@@ -13,6 +13,7 @@ const attFileName = id => ATT_PREFIX + id + ".json";
 let gistConfig = { id: "", token: "" };
 let gistSyncTimer = null;
 let gistSyncing = false;
+let gistLastSyncAt = 0; // когда началась последняя синхронизация
 let gistResync = false;
 let gistAuthBroken = false; // GitHub ответил 401: токен истёк или отозван
 const TOKEN_EXPIRED_MSG = "Токен истек - синхронизация не работает. Свяжитесь с разработчиком.";
@@ -120,6 +121,7 @@ async function gistSync({ silent = true } = {}) {
   if (gistAuthBroken && silent) return; // токен мёртв — автосинхронизацию не повторяем, ручная попытка разрешена
   if (gistSyncing) { gistResync = true; return; }
   gistSyncing = true;
+  gistLastSyncAt = Date.now();
   try {
     const gist = await gistRequest("GET", "/gists/" + gistConfig.id);
     gistFiles = gist.files || {};
@@ -200,5 +202,14 @@ async function gistSync({ silent = true } = {}) {
 function scheduleGistSync() {
   if (!gistCanWrite()) return; // в режиме просмотра отправлять нечего
   clearTimeout(gistSyncTimer);
-  gistSyncTimer = setTimeout(() => gistSync(), 2000); // debounce 2 секунды
+  gistSyncTimer = setTimeout(() => { gistSyncTimer = null; gistSync(); }, 2000); // debounce 2 секунды
+}
+
+// Окно скрыто/показано (PWA ушло в фон и вернулось, смена вкладки). Показано — подтянуть чужие правки (не чаще
+// GIST_FOCUS_SYNC_MS). Скрыто с неотправленной правкой — отправить сразу: в фоне система замораживает таймер debounce.
+function gistSyncOnVisibility() {
+  if (!gistReady()) return;
+  if (document.visibilityState === "hidden") {
+    if (gistSyncTimer) { clearTimeout(gistSyncTimer); gistSyncTimer = null; gistSync(); }
+  } else if (Date.now() - gistLastSyncAt > GIST_FOCUS_SYNC_MS) gistSync();
 }

@@ -38,4 +38,12 @@ function applyTheme() {
   const root = document.documentElement;
   if (settings.theme === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", settings.theme);
+  syncThemeColor();
+}
+
+// Цвет системной панели в установленном приложении (Android) — фон текущей темы
+function syncThemeColor() {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta && bg) meta.content = bg;
 }
