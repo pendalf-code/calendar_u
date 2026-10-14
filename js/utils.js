@@ -60,16 +60,20 @@ function escapeHtml(s) {
 }
 
 // Очистка объекта от prototype pollution
-function sanitizeObject(obj) {
+function sanitizeObject(obj, depth = 0) {
   if (obj === null || typeof obj !== "object") return obj;
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  if (depth > MAX_JSON_DEPTH) return null; // защита от «бомб» вложенности
+  if (Array.isArray(obj)) return obj.map(v => sanitizeObject(v, depth + 1));
   const clean = {};
   for (const key of Object.keys(obj)) {
     if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
-    clean[key] = sanitizeObject(obj[key]);
+    clean[key] = sanitizeObject(obj[key], depth + 1);
   }
   return clean;
 }
+
+// Имя файла из внешних данных: без путей, управляющих и служебных символов
+const safeFileName = n => (String(n || "").replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "_").trim().slice(0, 255)) || "file";
 
 /* ================= СОБЫТИЯ ================= */
 let idCounter = 1;
@@ -92,10 +96,21 @@ function normalizeRepeat(r) {
   };
 }
 
+// Подробности выездного конкурса: только известные ключи, только непустые строки
+function normalizeDetails(d) {
+  const out = {};
+  if (!d || typeof d !== "object") return out;
+  for (const f of TRIP_FIELDS) {
+    const v = String(d[f.key] == null ? "" : d[f.key]).trim().slice(0, f.multiline ? DETAIL_MAX_LEN_MULTILINE : DETAIL_MAX_LEN);
+    if (v) out[f.key] = v;
+  }
+  return out;
+}
+
 // Вложение: новый формат {id,name,size,type} (файл лежит в IndexedDB) или устаревший {name,dataUrl}
 function normalizeAttachment(f) {
   if (!f || typeof f.name !== "string") return null;
-  const name = f.name.slice(0, 255);
+  const name = safeFileName(f.name);
   if (typeof f.dataUrl === "string" && f.dataUrl.startsWith("data:")) return { name, dataUrl: f.dataUrl };
   if (typeof f.id === "string" && /^[\w-]{1,60}$/.test(f.id)) {
     return { id: f.id, name, size: Number(f.size) || 0, type: String(f.type || "").slice(0, 100) };
@@ -116,6 +131,7 @@ function validateEvent(e) {
     end = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours() + 1, start.getMinutes());
   }
 
+  const eventCategory = EVENT_CATEGORIES.includes(e.eventCategory) ? e.eventCategory : DEFAULT_EVENT_CATEGORY;
   return {
     id: cleanId(e.id || uid()),
     title,
@@ -123,7 +139,8 @@ function validateEvent(e) {
     location: String(e.location || "").slice(0, 500),
     description: String(e.description || "").slice(0, 2000),
     category: CATEGORIES[e.category] ? e.category : DEFAULT_COLOR,
-    eventCategory: EVENT_CATEGORIES.includes(e.eventCategory) ? e.eventCategory : DEFAULT_EVENT_CATEGORY,
+    eventCategory,
+    details: eventCategory === TRIP_CATEGORY ? normalizeDetails(e.details) : {},
     attachedFiles: (Array.isArray(e.attachedFiles) ? e.attachedFiles : [])
       .map(normalizeAttachment).filter(Boolean).slice(0, MAX_ATTACHED_FILES),
     repeat: normalizeRepeat(e.repeat),
@@ -137,10 +154,11 @@ function normalizeRecords(arr) {
   const events = [];
   const tombstones = [];
   if (!Array.isArray(arr)) return { events, tombstones };
-  for (const raw of sanitizeObject(arr)) {
+  for (const raw of sanitizeObject(arr).slice(0, MAX_RECORDS * 2)) {
+    if (events.length >= MAX_RECORDS && tombstones.length >= MAX_RECORDS) break;
     if (raw && raw.deleted === true && raw.id) {
-      tombstones.push({ id: cleanId(raw.id), updatedAt: Number(raw.updatedAt) || 0 });
-    } else {
+      if (tombstones.length < MAX_RECORDS) tombstones.push({ id: cleanId(raw.id), updatedAt: Number(raw.updatedAt) || 0 });
+    } else if (events.length < MAX_RECORDS) {
       const v = validateEvent(raw);
       if (v) events.push(v);
     }

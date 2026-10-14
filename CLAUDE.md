@@ -34,7 +34,7 @@
 
 8. **Время событий** — «настенное» время ровно как ввёл пользователь, без перевода между поясами: создание — `parseLocalIso(date + "T" + time)`; хранение — локальный ISO без пояса (`fmtLocalIso`); чтение — `parseLocalIso` берёт компоненты из строки и отбрасывает суффикс пояса. `new Date(string)` для событий не использовать. Отображение по дню — `eventSegment()` (обрезка по суткам).
 
-9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`.
+9. **Данные извне** (`localStorage`, Gist, импорт) — только через `normalizeRecords()` → `validateEvent()`. Пользовательский текст в DOM — только через `escapeHtml()` или `textContent`. Вложения: `dataUrl` не рендерить как ссылку/`src`; скачивать через Blob, тип проверять `safeMime()`, имя — `safeFileName()`. Ответы Gist недоверенные: ограничивать размер (`gistReadFile`), base64 проверять (`base64ToBlob`), `raw_url` — только `GIST_RAW_ORIGIN`; Gist ID/токен — `validGistId`/`validGistToken`. Лимиты — в `config.js` (`MAX_RECORDS`, `MAX_JSON_DEPTH`, …). В `index.html` действует CSP (`script-src 'self'`): inline-скрипты и обработчики `onclick=` запрещены, новый внешний хост — только осознанно, добавив его в `connect-src`.
 
 10. **Повторяющиеся события** — серия хранится одной записью (мастер: `start`/`end` первого вхождения + `repeat` + `exdates`); вхождения разворачиваются на лету в экземпляры с id `<id>@<YYYY-MM-DD>` (`recurrence.js`). Символ `@` зарезервирован (`cleanId` его вырезает). В DOM и в `data-id` всегда id экземпляра; искать — `findEventById()`. Изменение/удаление экземпляра — только через `applyEventChange()`/`deleteEvent()` (они спрашивают «это событие / вся серия»).
 
@@ -45,6 +45,8 @@
 13. **Перетаскивание** (`drag.js`) — Pointer Events; мышь/перо: создать (тянуть по колонке), перенести, растянуть, перенос в ячейку месяца. Тач: только долгое нажатие для создания (не мешать скроллу). После drag клик гасится через `clickSuppressed()` — новые click-обработчики в сетке должны его проверять.
 
 14. **Шапка** — действия (настройки, синхронизация, Gist, экспорт) на любой ширине живут в выпадающем меню кнопки «⋮» (`.header-actions` — popover, стили в `base.css`). Новые кнопки действий добавлять внутрь `#headerActions`, отдельных иконок в шапке не делать.
+
+15. **Подробности выездного конкурса** — список пунктов только в `TRIP_FIELDS` (`js/config.js`); форма `#detailsModal` строится из него (`buildDetailsFields`), валидация — `normalizeDetails()` (`utils.js`). Новый пункт = строка в `TRIP_FIELDS`, остальное подхватывается само. Это черновик `tripDetails` в `ui.js`: «Сохранить» в подробностях только обновляет черновик, в событие он попадает при сохранении события; у других категорий `details` всегда `{}`. Окно на телефоне (≤600 px) — на весь экран, кнопки закреплены внизу.
 
 ## Проверки перед коммитом
 
@@ -120,12 +122,14 @@ js/                  порядок = порядок <script> в index.html
 | `applyEventChange()` / `deleteEvent()` / `createEvent()` | events.js | Единственная точка изменения данных |
 | `gistSync()` | gist.js | Скачать → слить → записать (+ вложения) |
 | `attPut/attGet/…`, `downloadAttachment()` | attachments.js | IndexedDB |
+| `normalizeDetails()` | utils.js | Подробности выездного конкурса: известные ключи, непустые строки |
+| `buildDetailsFields()` / `openDetails()` | ui.js | Форма «Подробности» (по `TRIP_FIELDS`) |
 | `askScope()` | ui.js | Диалог «это / вся серия» |
 | `openModal()` / `saveEventFromModal()` | ui.js | Форма события (в т. ч. `preset` из drag) |
 
 ## Примечания
 
 - Два «категорийных» поля: `category` — цвет (5 значений), `eventCategory` — текстовая категория (`EVENT_CATEGORIES` в `config.js`, используется в фильтре и модалке).
-- Формат записи события: `id, title, start, end, location, description, category, eventCategory, attachedFiles[{id,name,size,type}], repeat{freq,interval,byDay,until}|null, exdates[], updatedAt`.
+- Формат записи события: `id, title, start, end, location, description, category, eventCategory, details{key:string}, attachedFiles[{id,name,size,type}], repeat{freq,interval,byDay,until}|null, exdates[], updatedAt`.
 - Слияние опирается на часы устройств: сильно расходящееся системное время даст «неправильного победителя».
 - Разработка: `python -m http.server 8000`.

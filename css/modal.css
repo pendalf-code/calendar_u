@@ -162,6 +162,29 @@
 }
 .attach-file-item .file-remove:hover { background: color-mix(in srgb, var(--c-pink) 18%, transparent); color: var(--c-pink); }
 
+/* ============ ПОДРОБНОСТИ ВЫЕЗДНОГО КОНКУРСА ============ */
+.trip-row { margin-top: 8px; }
+.trip-row[hidden] { display: none; }
+
+/* Шапка и кнопки закреплены, прокручивается только список полей */
+.modal.modal-details {
+  width: 640px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 20px;
+}
+.details-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.details-grid .field.wide { grid-column: 1 / -1; }
+.modal-details .modal-actions { margin-top: 14px; }
+
 /* ============ ТОСТ ============ */
 .toast {
   position: fixed;

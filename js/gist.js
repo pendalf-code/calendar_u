@@ -17,7 +17,10 @@ let gistAuthBroken = false; // GitHub ответил 401: токен истёк 
 const TOKEN_EXPIRED_MSG = "Токен истек - синхронизация не работает. Свяжитесь с разработчиком.";
 let gistFiles = {}; // список файлов Gist с последней синхронизации
 
-const gistReady = () => Boolean(gistConfig.id && gistConfig.token);
+// ID идёт в путь запроса, токен — в заголовок: пропускаем только допустимые форматы
+const validGistId = id => GIST_ID_RE.test(id);
+const validGistToken = t => GIST_TOKEN_RE.test(t);
+const gistReady = () => validGistId(gistConfig.id) && validGistToken(gistConfig.token);
 
 function loadGistConfig() {
   try {
@@ -63,9 +66,20 @@ async function gistRequest(method, url, body) {
 }
 
 // Большие файлы GitHub отдаёт усечёнными — тогда берём raw_url
-async function gistReadFile(file) {
-  if (!file.truncated && file.content != null) return file.content;
-  return (await fetch(file.raw_url)).text();
+// maxBytes — предел размера содержимого (ответ Gist недоверенный)
+async function gistReadFile(file, maxBytes) {
+  if (Number(file.size) > maxBytes) throw new Error("Файл Gist слишком большой");
+  let text;
+  if (!file.truncated && file.content != null) text = String(file.content);
+  else {
+    // raw_url — только с домена GitHub; токен туда не отправляется
+    if (typeof file.raw_url !== "string" || !file.raw_url.startsWith(GIST_RAW_ORIGIN)) throw new Error("Недопустимый адрес файла Gist");
+    const res = await fetch(file.raw_url, { credentials: "omit", referrerPolicy: "no-referrer" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    text = await res.text();
+  }
+  if (text.length > maxBytes) throw new Error("Файл Gist слишком большой");
+  return text;
 }
 
 async function gistFetchAttachment(id) {
@@ -76,10 +90,12 @@ async function gistFetchAttachment(id) {
     file = gistFiles[attFileName(id)];
   }
   if (!file) return null;
-  const obj = JSON.parse(await gistReadFile(file));
+  const obj = sanitizeObject(JSON.parse(await gistReadFile(file, MAX_ATTACH_BYTES * 4 / 3 + 4096)));
+  if (!obj || typeof obj !== "object") return null;
   const type = safeMime(obj.type);
   const blob = await base64ToBlob(String(obj.data || ""), type);
-  return { id, name: String(obj.name || "file").slice(0, 255), type, size: blob.size, blob };
+  if (!blob || blob.size > MAX_ATTACH_BYTES) return null;
+  return { id, name: safeFileName(obj.name), type, size: blob.size, blob };
 }
 
 // Полная синхронизация: скачать → слить с локальными → записать результат обратно.
@@ -97,7 +113,7 @@ async function gistSync({ silent = true } = {}) {
     let legacyRemote = false;
     const eventsFile = gistFiles[GIST_FILE_NAME];
     if (eventsFile) {
-      const text = await gistReadFile(eventsFile);
+      const text = await gistReadFile(eventsFile, MAX_GIST_EVENTS_BYTES);
       remote = normalizeRecords(JSON.parse(text));
       legacyRemote = text.includes('"dataUrl"'); // вложения в старом формате — перезапишем
     }

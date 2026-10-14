@@ -4,14 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://api.github.com https://gist.githubusercontent.com data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <title>Календарь</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/themes.css?v=6">
-<link rel="stylesheet" href="css/base.css?v=6">
-<link rel="stylesheet" href="css/calendar.css?v=6">
-<link rel="stylesheet" href="css/modal.css?v=6">
-<link rel="stylesheet" href="css/select.css?v=6">
-<link rel="stylesheet" href="css/responsive.css?v=6">
+<link rel="stylesheet" href="css/themes.css?v=8">
+<link rel="stylesheet" href="css/base.css?v=8">
+<link rel="stylesheet" href="css/calendar.css?v=8">
+<link rel="stylesheet" href="css/modal.css?v=8">
+<link rel="stylesheet" href="css/select.css?v=8">
+<link rel="stylesheet" href="css/responsive.css?v=8">
 </head>
 <body>
 
@@ -156,6 +158,9 @@
       <div class="select-wrapper">
         <select id="evCategory"></select>
       </div>
+      <div class="trip-row" id="tripRow" hidden>
+        <button type="button" class="attach-btn" id="detailsBtn"></button>
+      </div>
     </div>
     <div class="field">
       <label for="evLocation">Место</label>
@@ -174,6 +179,20 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="modalCancel">Отмена</button>
       <button class="btn-primary" id="modalSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Подробности выездного конкурса (поверх окна события) -->
+<div class="modal-overlay" id="detailsModal">
+  <div class="modal modal-details" role="dialog" aria-modal="true" aria-labelledby="detailsModalTitle">
+    <h2 id="detailsModalTitle">Подробности конкурса</h2>
+    <div class="details-body">
+      <div class="details-grid" id="detailsFields"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="detailsCancel">Отмена</button>
+      <button class="btn-primary" id="detailsSave">Сохранить</button>
     </div>
   </div>
 </div>
@@ -280,18 +299,18 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Порядок важен: скрипты классические (без ES-модулей), чтобы работать по file:// -->
-<script src="js/config.js?v=6"></script>
-<script src="js/utils.js?v=6"></script>
-<script src="js/recurrence.js?v=6"></script>
-<script src="js/settings.js?v=6"></script>
-<script src="js/attachments.js?v=6"></script>
-<script src="js/storage.js?v=6"></script>
-<script src="js/gist.js?v=6"></script>
-<script src="js/events.js?v=6"></script>
-<script src="js/render.js?v=6"></script>
-<script src="js/drag.js?v=6"></script>
-<script src="js/select.js?v=6"></script>
-<script src="js/ui.js?v=6"></script>
-<script src="js/main.js?v=6"></script>
+<script src="js/config.js?v=8"></script>
+<script src="js/utils.js?v=8"></script>
+<script src="js/recurrence.js?v=8"></script>
+<script src="js/settings.js?v=8"></script>
+<script src="js/attachments.js?v=8"></script>
+<script src="js/storage.js?v=8"></script>
+<script src="js/gist.js?v=8"></script>
+<script src="js/events.js?v=8"></script>
+<script src="js/render.js?v=8"></script>
+<script src="js/drag.js?v=8"></script>
+<script src="js/select.js?v=8"></script>
+<script src="js/ui.js?v=8"></script>
+<script src="js/main.js?v=8"></script>
 </body>
 </html>

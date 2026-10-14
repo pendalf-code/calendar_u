@@ -55,7 +55,12 @@ function blobToBase64(blob) {
 }
 
 const safeMime = t => (/^[\w.+-]+\/[\w.+-]+$/.test(String(t || "")) ? t : "application/octet-stream");
-const base64ToBlob = async (b64, type) => (await fetch("data:" + safeMime(type) + ";base64," + b64)).blob();
+const BASE64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+// b64 приходит из Gist: перед подстановкой в data:-URL проверяем алфавит (иначе можно «выйти» из base64-части URL)
+async function base64ToBlob(b64, type) {
+  if (!BASE64_RE.test(b64)) throw new Error("Некорректные данные вложения");
+  return (await fetch("data:" + safeMime(type) + ";base64," + b64)).blob();
+}
 
 // Устаревшие вложения {name, dataUrl} (лежали прямо в localStorage) → IndexedDB
 async function migrateLegacyAttachments() {

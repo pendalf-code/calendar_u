@@ -98,6 +98,20 @@
     padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
     transform: translateY(40px);
   }
+  /* Подробности конкурса — на весь экран, «Сохранить» всегда внизу */
+  .modal.modal-details {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    padding: 16px 16px calc(14px + env(safe-area-inset-bottom));
+    transform: translateY(40px);
+  }
+  .details-grid { grid-template-columns: 1fr; }
+  .modal-details .modal-actions { padding-top: 10px; border-top: 1px solid var(--border); }
+  .modal-details .modal-actions .btn-primary { flex: 2; }
+
   .field-row { flex-wrap: wrap; gap: 0 10px; }
   .field-row .field { flex: 1 1 40%; }
   .field-row .field:first-child { flex-basis: 100%; }

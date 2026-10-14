@@ -113,6 +113,56 @@ function syncRepeatUi() {
 }
 evRepeat.addEventListener("change", syncRepeatUi);
 
+/* ---------- Подробности выездного конкурса ---------- */
+const tripRow = document.getElementById("tripRow");
+const detailsBtn = document.getElementById("detailsBtn");
+const detailsModal = document.getElementById("detailsModal");
+const detailsFields = document.getElementById("detailsFields");
+let tripDetails = {};         // черновик подробностей редактируемого события {key: строка}
+
+function buildDetailsFields() {
+  TRIP_FIELDS.forEach(f => {
+    const wrap = document.createElement("div");
+    wrap.className = "field" + (f.multiline ? " wide" : "");
+    const label = document.createElement("label");
+    label.htmlFor = "det_" + f.key;
+    label.textContent = f.label;
+    const input = document.createElement(f.multiline ? "textarea" : "input");
+    input.id = "det_" + f.key;
+    input.maxLength = f.multiline ? DETAIL_MAX_LEN_MULTILINE : DETAIL_MAX_LEN;
+    if (f.multiline) input.rows = 4; else input.type = "text";
+    wrap.append(label, input);
+    detailsFields.appendChild(wrap);
+  });
+}
+
+function updateDetailsButton() {
+  const n = Object.keys(tripDetails).length;
+  detailsBtn.innerHTML = ICONS.details + " Подробности" + (n ? " · заполнено " + n + " из " + TRIP_FIELDS.length : "");
+  detailsBtn.classList.toggle("has-file", n > 0);
+}
+
+// Кнопка «Подробности» видна только у «Выездного конкурса»
+function syncTripUi() {
+  tripRow.hidden = evCategorySelect.value !== TRIP_CATEGORY;
+}
+evCategorySelect.addEventListener("change", syncTripUi);
+
+function openDetails() {
+  TRIP_FIELDS.forEach(f => { document.getElementById("det_" + f.key).value = tripDetails[f.key] || ""; });
+  detailsModal.classList.add("open");
+  detailsModal.querySelector(".details-body").scrollTop = 0;
+}
+detailsBtn.addEventListener("click", openDetails);
+document.getElementById("detailsCancel").addEventListener("click", () => detailsModal.classList.remove("open"));
+document.getElementById("detailsSave").addEventListener("click", () => {
+  const raw = {};
+  TRIP_FIELDS.forEach(f => { raw[f.key] = document.getElementById("det_" + f.key).value; });
+  tripDetails = normalizeDetails(raw);
+  updateDetailsButton();
+  detailsModal.classList.remove("open");
+});
+
 /* ---------- Открытие / закрытие ---------- */
 function openModal(day, eventToEdit = null, preset = null) {
   editingInst = eventToEdit;
@@ -128,6 +178,9 @@ function openModal(day, eventToEdit = null, preset = null) {
   document.getElementById("evDesc").value = ev ? ev.description : "";
   evCategorySelect.value = ev ? ev.eventCategory : EVENT_CATEGORIES[0];
   pickedCategory = ev ? ev.category : "purple";
+  tripDetails = ev ? { ...ev.details } : {};
+  syncTripUi();
+  updateDetailsButton();
   attachedFiles = ev ? [...ev.attachedFiles] : [];
   pendingFiles.clear();
 
@@ -145,7 +198,10 @@ function openModal(day, eventToEdit = null, preset = null) {
   setTimeout(() => document.getElementById("evTitle").focus(), 150);
 }
 
-function closeModal() { modalOverlay.classList.remove("open"); }
+function closeModal() {
+  modalOverlay.classList.remove("open");
+  detailsModal.classList.remove("open");
+}
 
 /* ---------- Вложения ---------- */
 function updateAttachButton() {
@@ -180,7 +236,7 @@ eventFileInput.addEventListener("change", () => {
     if (file.size > MAX_ATTACH_BYTES) { showToast("«" + file.name + "» больше " + fmtSize(MAX_ATTACH_BYTES)); continue; }
     const id = newAttachmentId();
     pendingFiles.set(id, file);
-    attachedFiles.push({ id, name: file.name.slice(0, 255), size: file.size, type: file.type });
+    attachedFiles.push({ id, name: safeFileName(file.name), size: file.size, type: file.type });
   }
   eventFileInput.value = "";
   updateAttachButton();
@@ -243,6 +299,7 @@ async function saveEventFromModal() {
     description: document.getElementById("evDesc").value.trim(),
     category: pickedCategory,
     eventCategory: evCategorySelect.value,
+    details: evCategorySelect.value === TRIP_CATEGORY ? { ...tripDetails } : {},
     attachedFiles: [...attachedFiles],
     repeat,
   };
@@ -463,8 +520,12 @@ document.getElementById("gistSyncBtn").addEventListener("click", () => {
 });
 
 document.getElementById("gistSave").addEventListener("click", () => {
-  gistConfig.id = document.getElementById("gistId").value.trim();
-  gistConfig.token = document.getElementById("gistToken").value.trim();
+  const id = document.getElementById("gistId").value.trim();
+  const token = document.getElementById("gistToken").value.trim();
+  if (id && !validGistId(id)) { showToast("Gist ID — только латинские буквы a–f и цифры"); return; }
+  if (token && !validGistToken(token)) { showToast("Токен содержит недопустимые символы"); return; }
+  gistConfig.id = id;
+  gistConfig.token = token;
   gistAuthBroken = false; // введён новый токен — пробуем снова
   saveGistConfig();
   gistModal.classList.remove("open");
