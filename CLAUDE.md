@@ -62,7 +62,7 @@
 
 22. **Защита от встраивания** — `js/guard.js` подключается первым (в `<head>`), при `window.top !== window.self` прячет страницу и ставит `window.__framed`; `main.js` в этом случае приложение не запускает (`startApp()` только если не `__framed`). Заголовков на Pages нет, это единственная защита от clickjacking. Не подключать новые скрипты раньше `guard.js`.
 
-23. **PWA** — `manifest.webmanifest` + `sw.js` (оба в корне, чтобы scope охватывал всё приложение) + иконки `assets/icon-*.png`, `apple-touch-icon.png`; регистрация — `registerServiceWorker()` в `main.js` (только `http(s):`, по `file://` пропускается). `sw.js`: страница — сначала сеть (`cache: "no-cache"`), без сети копия из кэша; файлы `js/`/`css/` — сначала кэш (адреса версионированы `?v=N`); при установке и при каждой загрузке `index.html` лишние версии чистятся (`prune`). Чужие origin (`api.github.com`) service worker не трогает — Gist всегда напрямую. Иконки — PNG из `assets/icon.svg`: `msedge --headless --screenshot=… --window-size=N,N file:///…/icon.svg`; глиф «Ю» — обводка (без шрифтов) и укладывается в безопасную зону maskable (круг 80 %). Цвет `theme-color` = `--bg` текущей темы (`syncThemeColor()` в `settings.js`, не хардкодить). Синхронизация Gist, кроме старта и правки, идёт при возврате в приложение (`gistSyncOnVisibility`, не чаще `GIST_FOCUS_SYNC_MS`), при `online` и при уходе в фон с неотправленной правкой.
+23. **PWA** — `manifest.webmanifest` + `sw.js` (оба в корне, чтобы scope охватывал всё приложение) + иконки `assets/icon-*.png` (180 — для iOS, `apple-touch-icon`); регистрация — `registerServiceWorker()` в `main.js` (только `http(s):`, по `file://` пропускается). `sw.js`: страница — сначала сеть (`cache: "no-cache"`), без сети копия из кэша; файлы `js/`/`css/` — сначала кэш (адреса версионированы `?v=N`); при установке и при каждой загрузке `index.html` лишние версии чистятся (`prune`). Чужие origin (`api.github.com`) service worker не трогает — Gist всегда напрямую. Иконки — PNG из `assets/icon.svg`: `msedge --headless --screenshot=… --window-size=N,N file:///…/icon.svg`; глиф «Ю» — обводка (без шрифтов) и укладывается в безопасную зону maskable (круг 80 %). Цвет `theme-color` = `--bg` текущей темы (`syncThemeColor()` в `settings.js`, не хардкодить). Синхронизация Gist, кроме старта и правки, идёт при возврате в приложение (`gistSyncOnVisibility`, не чаще `GIST_FOCUS_SYNC_MS`), при `online` и при уходе в фон с неотправленной правкой.
 
 ## Проверки перед коммитом
 
@@ -102,7 +102,7 @@ manifest.webmanifest описание PWA (имя, иконки, цвета)
 sw.js                service worker: офлайн-кэш оболочки
 CLAUDE.md            этот файл
 README.md            описание для пользователя
-assets/              icon.svg (исходник иконки «Ю»), icon-192/512.png, apple-touch-icon.png, favicon.svg
+assets/              icon.svg (исходник иконки «Ю»), icon-180/192/512.png, favicon.svg
 css/
   themes.css         токены и темы
   base.css           сброс, шапка, кнопки, поиск, фильтр, меню действий
