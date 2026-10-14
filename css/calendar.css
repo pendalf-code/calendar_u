@@ -268,8 +268,9 @@
   gap: 12px;
   margin-bottom: 12px;
 }
-.panel-title { font-size: 18px; font-weight: 700; min-width: 0; }
+.panel-title { font-size: 18px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 .panel-add-btn {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -284,6 +285,7 @@
   white-space: nowrap;
   transition: all 0.2s;
 }
+.panel-add-btn svg { flex-shrink: 0; }
 .panel-add-btn:hover { background: var(--surface-2); border-color: var(--c-purple-soft); }
 .panel-close {
   margin-left: auto;
