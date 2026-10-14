@@ -37,6 +37,7 @@ const attDelete = id => attTx("readwrite", st => st.delete(id));
 const attKeys = () => attTx("readonly", st => st.getAllKeys());
 
 let attSaving = 0; // >0, пока вложения пишутся в IndexedDB — сборщик мусора в это время не работает
+let gcHold = 0;    // >0, пока можно отменить удаление события — файлы удалённого события ещё нужны
 
 const newAttachmentId = () => "at" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
@@ -128,7 +129,7 @@ async function prefetchAttachments() {
 
 // Удалить из IndexedDB файлы, на которые не ссылается ни одно событие
 async function gcAttachments() {
-  if (attSaving > 0) return;
+  if (attSaving > 0 || gcHold > 0) return;
   try {
     const live = liveAttachmentIds();
     for (const id of await attKeys()) if (!live.has(id)) await attDelete(id);

@@ -253,3 +253,38 @@
 .scope-actions { display: flex; flex-direction: column; gap: 8px; }
 .scope-actions .btn-primary { flex: none; }
 .btn-primary.alt { background: linear-gradient(135deg, var(--c-amber), var(--c-pink)); }
+
+/* ============ ПЛАШКА «ОТМЕНИТЬ» ============ */
+.undo-bar {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  max-width: 90vw;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 8px 8px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 201;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.35s var(--ease-spring);
+  box-shadow: 0 12px 32px var(--glow);
+}
+.undo-bar.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.undo-btn {
+  border: none;
+  background: linear-gradient(135deg, var(--c-purple), var(--c-purple-soft));
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}

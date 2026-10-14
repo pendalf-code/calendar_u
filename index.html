@@ -8,12 +8,12 @@
 <meta name="referrer" content="no-referrer">
 <title>Календарь</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/themes.css?v=9">
-<link rel="stylesheet" href="css/base.css?v=9">
-<link rel="stylesheet" href="css/calendar.css?v=9">
-<link rel="stylesheet" href="css/modal.css?v=9">
-<link rel="stylesheet" href="css/select.css?v=9">
-<link rel="stylesheet" href="css/responsive.css?v=9">
+<link rel="stylesheet" href="css/themes.css?v=10">
+<link rel="stylesheet" href="css/base.css?v=10">
+<link rel="stylesheet" href="css/calendar.css?v=10">
+<link rel="stylesheet" href="css/modal.css?v=10">
+<link rel="stylesheet" href="css/select.css?v=10">
+<link rel="stylesheet" href="css/responsive.css?v=10">
 </head>
 <body>
 
@@ -32,6 +32,7 @@
     <button class="view-btn" data-view="day">День</button>
     <button class="view-btn" data-view="week">Неделя</button>
     <button class="view-btn active" data-view="month">Месяц</button>
+    <button class="view-btn" data-view="agenda">Список</button>
   </div>
 
   <div class="search-box" id="searchBox">
@@ -209,10 +210,6 @@
       <label for="gistToken">Personal Access Token</label>
       <input type="password" id="gistToken" placeholder="ghp_..." autocomplete="off">
     </div>
-    <p class="field-hint">
-      Токен хранится только в вашем браузере (localStorage). Создайте токен с правами <code>gist</code> на
-      <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">github.com/settings/tokens</a>.
-    </p>
     <div class="modal-actions">
       <button class="btn-ghost" id="gistCancel">Отмена</button>
       <button class="btn-primary" id="gistSave">Сохранить</button>
@@ -276,6 +273,15 @@
         </select>
       </div>
     </div>
+    <div class="field">
+      <label for="setHolidays">Праздники РФ</label>
+      <div class="select-wrapper">
+        <select id="setHolidays">
+          <option value="on">Показывать и подсвечивать</option>
+          <option value="off">Скрыть</option>
+        </select>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="settingsCancel">Отмена</button>
       <button class="btn-primary" id="settingsSave">Сохранить</button>
@@ -297,20 +303,29 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="undo-bar" id="undoBar" role="status" aria-live="polite">
+  <span id="undoText"></span>
+  <button type="button" class="undo-btn" id="undoBtn">Отменить</button>
+</div>
 
 <!-- Порядок важен: скрипты классические (без ES-модулей), чтобы работать по file:// -->
-<script src="js/config.js?v=9"></script>
-<script src="js/utils.js?v=9"></script>
-<script src="js/recurrence.js?v=9"></script>
-<script src="js/settings.js?v=9"></script>
-<script src="js/attachments.js?v=9"></script>
-<script src="js/storage.js?v=9"></script>
-<script src="js/gist.js?v=9"></script>
-<script src="js/events.js?v=9"></script>
-<script src="js/render.js?v=9"></script>
-<script src="js/drag.js?v=9"></script>
-<script src="js/select.js?v=9"></script>
-<script src="js/ui.js?v=9"></script>
-<script src="js/main.js?v=9"></script>
+<script src="js/config.js?v=10"></script>
+<script src="js/utils.js?v=10"></script>
+<script src="js/recurrence.js?v=10"></script>
+<script src="js/settings.js?v=10"></script>
+<script src="js/holidays.js?v=10"></script>
+<script src="js/attachments.js?v=10"></script>
+<script src="js/storage.js?v=10"></script>
+<script src="js/gist.js?v=10"></script>
+<script src="js/events.js?v=10"></script>
+<script src="js/render.js?v=10"></script>
+<script src="js/drag.js?v=10"></script>
+<script src="js/select.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
+<script src="js/attachments-ui.js?v=10"></script>
+<script src="js/modal.js?v=10"></script>
+<script src="js/search.js?v=10"></script>
+<script src="js/settings-ui.js?v=10"></script>
+<script src="js/main.js?v=10"></script>
 </body>
 </html>

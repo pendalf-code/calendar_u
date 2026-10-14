@@ -432,3 +432,34 @@
   box-shadow: 0 0 0 2px var(--c-purple);
 }
 body.dragging, body.dragging * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
+
+/* ============ ПРАЗДНИКИ РФ ============ */
+.day-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.holiday-name {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--weekend-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============ СПИСОК (ПОВЕСТКА) ============ */
+.agenda { height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; }
+.agenda-bar { display: flex; }
+.agenda-day { display: flex; flex-direction: column; gap: 8px; }
+.agenda-date {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.agenda-day.weekend .agenda-date { color: var(--weekend-accent); }
+.agenda-day.today .agenda-date { color: var(--c-purple); }
+.agenda-holiday { font-size: 12px; font-weight: 600; color: var(--weekend-accent); }

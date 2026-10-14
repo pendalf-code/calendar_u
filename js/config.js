@@ -55,6 +55,22 @@ const TRIP_FIELDS = [
 const DETAIL_MAX_LEN = 500;
 const DETAIL_MAX_LEN_MULTILINE = 2000;
 
+// Группы полей события для слияния с Gist: у каждой группы своя метка времени (event.fieldTimes[группа]).
+// start/end/repeat/exdates связаны между собой — их нельзя брать от разных устройств по отдельности.
+const MERGE_GROUPS = {
+  title:       ["title"],
+  when:        ["start", "end", "repeat", "exdates"],
+  location:    ["location"],
+  description: ["description"],
+  color:       ["category"],
+  kind:        ["eventCategory", "details"],
+  files:       ["attachedFiles"],
+};
+const MERGE_GROUP_NAMES = Object.keys(MERGE_GROUPS);
+
+const AGENDA_DAYS = 30; // ширина окна вида «Список», дней
+const UNDO_MS = 7000;   // сколько висит кнопка «Отменить» после удаления
+
 const MONTHS = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const MONTHS_GEN = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
 // Индекс = Date.getDay() (0 — воскресенье)
@@ -79,10 +95,10 @@ const GIST_STORAGE_KEY = "calendar_gist_config_v1";
 const GIST_FILE_NAME = "calendar-events.json";
 
 const state = {
-  view: "month",            // day | week | month
+  view: "month",            // day | week | month | agenda
   anchor: new Date(),       // дата, вокруг которой строится вид
   selected: null,           // выбранный день (Date)
-  events: [],               // [{id,title,start,end,location,description,category,eventCategory,details,attachedFiles,repeat,exdates,updatedAt}]
+  events: [],               // [{id,title,start,end,location,description,category,eventCategory,details,attachedFiles,repeat,exdates,fieldTimes?,updatedAt}]
   tombstones: [],           // [{id,updatedAt}] — удалённые события (нужны для слияния с Gist)
   categoryFilter: "all",    // "all" или одно из EVENT_CATEGORIES
   search: "",               // строка поиска по названию и месту
@@ -97,6 +113,7 @@ const DEFAULT_SETTINGS = {
   weekend: "6,0",    // дни, считающиеся выходными
   timeFormat: "24",  // 24 | 12
   hourHeight: 56,    // px на час в дневной/недельной сетке
+  holidays: true,    // показывать праздники РФ и подсвечивать их как выходные
 };
 let settings = { ...DEFAULT_SETTINGS };
 

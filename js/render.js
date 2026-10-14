@@ -10,9 +10,12 @@ function render() {
   const prevScroll = prevWrap && renderedView === state.view
     ? { top: prevWrap.scrollTop, left: prevWrap.scrollLeft }
     : null;
+  const prevAgenda = viewContainer.querySelector(".agenda");
+  const agendaScroll = prevAgenda && renderedView === state.view ? prevAgenda.scrollTop : 0;
 
   if (state.view === "month") renderMonth();
   else if (state.view === "week") renderWeek();
+  else if (state.view === "agenda") renderAgenda();
   else renderDay();
   renderedView = state.view;
 
@@ -21,6 +24,8 @@ function render() {
     if (prevScroll) { wrap.scrollTop = prevScroll.top; wrap.scrollLeft = prevScroll.left; }
     else scrollGridToDefault(wrap);
   }
+  const agenda = viewContainer.querySelector(".agenda");
+  if (agenda) agenda.scrollTop = agendaScroll;
   renderPanel();
 }
 
@@ -77,9 +82,12 @@ function renderMonth() {
     if (day.getMonth() !== month) cls.push("other-month");
     if (isSameDay(day, today)) cls.push("today");
     if (state.selected && isSameDay(day, state.selected)) cls.push("selected");
-    if (weekendDays.includes(day.getDay())) cls.push("weekend");
+    const holiday = holidayName(day);
+    if (weekendDays.includes(day.getDay()) || holiday) cls.push("weekend");
+    if (holiday) cls.push("holiday");
 
-    html += `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}" tabindex="0"><div class="day-num">${day.getDate()}</div><div class="month-events">`;
+    html += `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}" tabindex="0"${holiday ? ` title="${escapeHtml(holiday)}"` : ""}>` +
+      `<div class="day-head"><div class="day-num">${day.getDate()}</div>${holiday ? `<div class="holiday-name">${escapeHtml(holiday)}</div>` : ""}</div><div class="month-events">`;
     for (const e of shown) {
       const cat = catOf(e);
       html += `<div class="month-event" data-id="${escapeHtml(e.id)}" style="background:${cat.hex};color:${cat.text}" title="${escapeHtml(e.title)}">${e.seriesId ? ICONS.repeat : ""}${escapeHtml(e.title)}</div>`;
@@ -98,18 +106,21 @@ function renderMonth() {
 }
 
 /* ---------- Неделя / день ---------- */
+const fmtRangeLabel = (a, b) =>
+  a.getDate() + " " + MONTHS_GEN[a.getMonth()] + " — " + b.getDate() + " " + MONTHS_GEN[b.getMonth()];
+
 function renderWeek() {
   const offset = (state.anchor.getDay() - settings.firstDay + 7) % 7;
   const startOfWeek = addDays(startOfDay(state.anchor), -offset);
   const endOfWeek = addDays(startOfWeek, 6);
-  currentLabel.textContent = startOfWeek.getDate() + " " + MONTHS_GEN[startOfWeek.getMonth()] +
-    " — " + endOfWeek.getDate() + " " + MONTHS_GEN[endOfWeek.getMonth()];
+  currentLabel.textContent = fmtRangeLabel(startOfWeek, endOfWeek);
   renderTimeGrid(Array.from({ length: 7 }, (_, i) => addDays(startOfWeek, i)));
 }
 
 function renderDay() {
   const day = startOfDay(state.anchor);
-  currentLabel.textContent = fmtDayTitle(day);
+  const holiday = holidayName(day);
+  currentLabel.textContent = fmtDayTitle(day) + (holiday ? " · " + holiday : "");
   renderTimeGrid([day]);
 }
 
@@ -125,8 +136,9 @@ function renderTimeGrid(days) {
     const cls = ["day-col-header"];
     if (isSameDay(day, today)) cls.push("today");
     if (state.selected && isSameDay(day, state.selected)) cls.push("selected");
-    if (weekendDays.includes(day.getDay())) cls.push("weekend");
-    html += `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}"><div class="dow-name">${DOW[day.getDay()]}</div><div class="dow-num">${day.getDate()}</div></div>`;
+    const holiday = holidayName(day);
+    if (weekendDays.includes(day.getDay()) || holiday) cls.push("weekend");
+    html += `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}"${holiday ? ` title="${escapeHtml(holiday)}"` : ""}><div class="dow-name">${DOW[day.getDay()]}</div><div class="dow-num">${day.getDate()}</div></div>`;
   }
   html += '</div><div class="time-grid-body"><div class="hour-labels">';
   for (let h = 0; h < 24; h++) html += `<div class="hour-label"><span>${fmtHourLabel(h)}</span></div>`;
@@ -156,7 +168,7 @@ function nowOffsetPx(hh) {
 function dayColumnHtml(day, today, weekendDays, hh) {
   const cls = ["day-column"];
   const isToday = isSameDay(day, today);
-  if (weekendDays.includes(day.getDay())) cls.push("weekend");
+  if (weekendDays.includes(day.getDay()) || holidayName(day)) cls.push("weekend");
   if (isToday) cls.push("today");
 
   let html = `<div class="${cls.join(" ")}" data-date="${fmtDateInput(day)}">`;
@@ -188,15 +200,118 @@ function updateNowLines() {
   document.querySelectorAll(".now-line").forEach(el => { el.style.top = nowOffsetPx(settings.hourHeight) + "px"; });
 }
 
+/* ---------- Карточка события (панель дня и список) ---------- */
+// day — день, в котором карточка показана: у многодневного события время видно только в день начала/конца
+function buildEventCard(e, day, i) {
+  const card = document.createElement("div");
+  card.className = "event-card";
+  card.tabIndex = 0;
+  card.style.setProperty("--cat-color", catOf(e).hex);
+  card.style.animationDelay = (i * 0.05) + "s";
+
+  const startsToday = e.start >= startOfDay(day);
+  const endsToday = e.end <= addDays(startOfDay(day), 1);
+  const timeText = (startsToday ? fmtTime(e.start) : "…") + " – " + (endsToday ? fmtTime(e.end) : "…");
+
+  const files = e.attachedFiles.length
+    ? `<div class="event-meta">${e.attachedFiles.map((f, k) => `<button type="button" class="event-file" data-att="${k}" title="Скачать">${ICONS.clip}${escapeHtml(f.name)}${f.size ? " · " + fmtSize(f.size) : ""}</button>`).join("")}</div>`
+    : "";
+  const place = [e.location, e.description].filter(Boolean).join(" · ");
+  card.innerHTML = `
+    <div class="event-time">${timeText}</div>
+    <div class="event-info">
+      <div class="event-title">${escapeHtml(e.title)}</div>
+      <div class="event-meta event-cat">${escapeHtml(e.eventCategory)}${e.repeat ? ` <span class="event-repeat">${ICONS.repeat}${escapeHtml(repeatLabel(e.repeat))}</span>` : ""}</div>
+      ${place ? `<div class="event-meta">${escapeHtml(place)}</div>` : ""}
+      ${files}
+    </div>
+    <button class="event-del" title="Удалить" aria-label="Удалить событие">${ICONS.close}</button>`;
+
+  card.querySelector(".event-del").addEventListener("click", ev => {
+    ev.stopPropagation();
+    deleteEvent(e);
+  });
+  card.querySelectorAll(".event-file").forEach(btn => btn.addEventListener("click", ev => {
+    ev.stopPropagation();
+    downloadAttachment(e.attachedFiles[Number(btn.dataset.att)]);
+  }));
+  const edit = () => openModal(startOfDay(e.start), e);
+  card.addEventListener("click", edit);
+  card.addEventListener("keydown", ev => { if (ev.key === "Enter" && ev.target === card) edit(); });
+  return card;
+}
+
+/* ---------- Список (повестка) ---------- */
+// AGENDA_DAYS дней от state.anchor: только дни с событиями или праздниками
+function renderAgenda() {
+  const from = startOfDay(state.anchor);
+  const to = addDays(from, AGENDA_DAYS - 1);
+  currentLabel.textContent = fmtRangeLabel(from, to);
+
+  const today = startOfDay(new Date());
+  const weekendDays = settings.weekend.split(",").map(Number);
+  const root = document.createElement("div");
+  root.className = "agenda";
+
+  const bar = document.createElement("div");
+  bar.className = "agenda-bar";
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "panel-add-btn";
+  add.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Событие';
+  add.addEventListener("click", () => openModal(from));
+  bar.appendChild(add);
+  root.appendChild(bar);
+
+  let total = 0;
+  for (let i = 0; i < AGENDA_DAYS; i++) {
+    const day = addDays(from, i);
+    const evs = eventsForDay(day);
+    const holiday = holidayName(day);
+    if (!evs.length && !holiday) continue;
+    total += evs.length;
+
+    const section = document.createElement("section");
+    section.className = "agenda-day";
+    if (isSameDay(day, today)) section.classList.add("today");
+    if (weekendDays.includes(day.getDay()) || holiday) section.classList.add("weekend");
+
+    const head = document.createElement("h3");
+    head.className = "agenda-date";
+    head.textContent = fmtDayTitle(day) + (isSameDay(day, today) ? " · сегодня" : "");
+    if (holiday) {
+      const h = document.createElement("span");
+      h.className = "agenda-holiday";
+      h.textContent = holiday;
+      head.appendChild(h);
+    }
+    section.appendChild(head);
+    evs.forEach((e, k) => section.appendChild(buildEventCard(e, day, k)));
+    root.appendChild(section);
+  }
+
+  if (!total) {
+    const note = document.createElement("div");
+    note.className = "empty-note";
+    note.textContent = state.categoryFilter === "all" && !state.search.trim()
+      ? "В этом периоде событий нет"
+      : "Ничего не найдено в этом периоде";
+    root.appendChild(note);
+  }
+  viewContainer.innerHTML = "";
+  viewContainer.appendChild(root);
+}
+
 /* ---------- Панель событий дня ---------- */
 const dayPanel = document.getElementById("dayPanel");
 const panelTitle = document.getElementById("panelTitle");
 const eventsList = document.getElementById("eventsList");
 
 function renderPanel() {
-  if (!state.selected) { dayPanel.classList.remove("open"); return; }
+  if (!state.selected || state.view === "agenda") { dayPanel.classList.remove("open"); return; }
   const day = state.selected;
-  panelTitle.textContent = fmtDayTitle(day);
+  const holiday = holidayName(day);
+  panelTitle.textContent = fmtDayTitle(day) + (holiday ? " · " + holiday : "");
 
   const evs = eventsForDay(day);
   eventsList.innerHTML = "";
@@ -208,45 +323,6 @@ function renderPanel() {
       : "Нет событий категории «" + state.categoryFilter + "»";
     eventsList.appendChild(note);
   }
-
-  evs.forEach((e, i) => {
-    const card = document.createElement("div");
-    card.className = "event-card";
-    card.tabIndex = 0;
-    card.style.setProperty("--cat-color", catOf(e).hex);
-    card.style.animationDelay = (i * 0.05) + "s";
-
-    // Многодневное событие: время показываем только на дне, где оно реально начинается/заканчивается
-    const startsToday = e.start >= startOfDay(day);
-    const endsToday = e.end <= addDays(startOfDay(day), 1);
-    const timeText = (startsToday ? fmtTime(e.start) : "…") + " – " + (endsToday ? fmtTime(e.end) : "…");
-
-    const files = e.attachedFiles.length
-      ? `<div class="event-meta">${e.attachedFiles.map((f, k) => `<button type="button" class="event-file" data-att="${k}" title="Скачать">${ICONS.clip}${escapeHtml(f.name)}${f.size ? " · " + fmtSize(f.size) : ""}</button>`).join("")}</div>`
-      : "";
-    const place = [e.location, e.description].filter(Boolean).join(" · ");
-    card.innerHTML = `
-      <div class="event-time">${timeText}</div>
-      <div class="event-info">
-        <div class="event-title">${escapeHtml(e.title)}</div>
-        <div class="event-meta event-cat">${escapeHtml(e.eventCategory)}${e.repeat ? ` <span class="event-repeat">${ICONS.repeat}${escapeHtml(repeatLabel(e.repeat))}</span>` : ""}</div>
-        ${place ? `<div class="event-meta">${escapeHtml(place)}</div>` : ""}
-        ${files}
-      </div>
-      <button class="event-del" title="Удалить" aria-label="Удалить событие">${ICONS.close}</button>`;
-
-    card.querySelector(".event-del").addEventListener("click", ev => {
-      ev.stopPropagation();
-      deleteEvent(e);
-    });
-    card.querySelectorAll(".event-file").forEach(btn => btn.addEventListener("click", ev => {
-      ev.stopPropagation();
-      downloadAttachment(e.attachedFiles[Number(btn.dataset.att)]);
-    }));
-    const edit = () => openModal(startOfDay(e.start), e);
-    card.addEventListener("click", edit);
-    card.addEventListener("keydown", ev => { if (ev.key === "Enter" && ev.target === card) edit(); });
-    eventsList.appendChild(card);
-  });
+  evs.forEach((e, i) => eventsList.appendChild(buildEventCard(e, day, i)));
   dayPanel.classList.add("open");
 }

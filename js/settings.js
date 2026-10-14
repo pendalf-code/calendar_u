@@ -14,6 +14,7 @@ function normalizeSettings(raw) {
     weekend: WEEKEND_OPTIONS.includes(weekend) ? weekend : DEFAULT_SETTINGS.weekend,
     timeFormat: s.timeFormat === "12" ? "12" : "24",
     hourHeight: Math.min(120, Math.max(32, Number(s.hourHeight) || DEFAULT_SETTINGS.hourHeight)),
+    holidays: s.holidays === false || s.holidays === "off" ? false : true,
   };
 }
 

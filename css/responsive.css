@@ -124,6 +124,9 @@
   .cat-option { width: 44px; height: 44px; }
 
   .toast { bottom: calc(16px + env(safe-area-inset-bottom)); padding: 10px 18px; font-size: 12px; }
+  .undo-bar { bottom: calc(64px + env(safe-area-inset-bottom)); font-size: 12px; }
+  .holiday-name { display: none; } /* в узкой ячейке — только подсветка; название в панели дня и по долгому нажатию */
+  .view-btn { padding: 7px 6px; }
 }
 
 /* Узкие телефоны */

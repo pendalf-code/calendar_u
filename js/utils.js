@@ -118,6 +118,20 @@ function normalizeAttachment(f) {
   return null;
 }
 
+// Метки времени по группам полей (см. MERGE_GROUPS): только известные группы с положительным числом; нет меток — null
+function normalizeFieldTimes(ft) {
+  if (!ft || typeof ft !== "object") return null;
+  const out = {};
+  for (const g of MERGE_GROUP_NAMES) {
+    const n = Number(ft[g]);
+    if (n > 0) out[g] = n;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// Метка времени последней правки группы полей; у записи без fieldTimes (старый формат) — общий updatedAt
+const fieldTime = (e, group) => (e.fieldTimes && e.fieldTimes[group]) || e.updatedAt;
+
 // Проверка и нормализация одного события; null — событие негодное
 function validateEvent(e) {
   if (!e || typeof e !== "object") return null;
@@ -132,6 +146,7 @@ function validateEvent(e) {
   }
 
   const eventCategory = EVENT_CATEGORIES.includes(e.eventCategory) ? e.eventCategory : DEFAULT_EVENT_CATEGORY;
+  const fieldTimes = normalizeFieldTimes(e.fieldTimes);
   return {
     id: cleanId(e.id || uid()),
     title,
@@ -146,6 +161,7 @@ function validateEvent(e) {
     repeat: normalizeRepeat(e.repeat),
     exdates: (Array.isArray(e.exdates) ? e.exdates : []).map(String).filter(k => DATE_KEY_RE.test(k)).slice(0, 1000),
     updatedAt: Number(e.updatedAt) > 0 ? Number(e.updatedAt) : 0, // 0 — запись без метки (старый формат)
+    ...(fieldTimes ? { fieldTimes } : {}),
   };
 }
 
@@ -175,12 +191,31 @@ function serializeEvents(includeDeleted = true) {
   return live.concat(state.tombstones.map(t => ({ id: t.id, deleted: true, updatedAt: t.updatedAt })));
 }
 
-// Слияние по id: побеждает запись с большим updatedAt; при равенстве — локальная, но удаление сильнее правки
+// Слияние двух версий одного события по группам полей: каждая группа берётся от той записи, где её правили позже
+// (при равенстве — от `a`, локальной). Если все группы достались одной записи, возвращается она сама.
+function mergeEventFields(a, b) {
+  const pick = {};
+  for (const g of MERGE_GROUP_NAMES) pick[g] = fieldTime(b, g) > fieldTime(a, g) ? b : a;
+  const winners = new Set(Object.values(pick));
+  if (winners.size === 1) return [...winners][0];
+
+  const out = { ...a, fieldTimes: {}, updatedAt: Math.max(a.updatedAt, b.updatedAt) };
+  for (const g of MERGE_GROUP_NAMES) {
+    for (const f of MERGE_GROUPS[g]) out[f] = pick[g][f];
+    out.fieldTimes[g] = fieldTime(pick[g], g);
+  }
+  return out;
+}
+
+// Слияние по id. Событие против события — по группам полей (mergeEventFields).
+// Событие против «надгробия»: побеждает больший updatedAt; при равенстве удаление сильнее правки.
 function mergeRecords(local, remote) {
   const map = new Map();
   const consider = (rec, deleted) => {
     const cur = map.get(rec.id);
-    if (!cur || rec.updatedAt > cur.rec.updatedAt || (rec.updatedAt === cur.rec.updatedAt && deleted && !cur.deleted)) {
+    if (!cur) { map.set(rec.id, { rec, deleted }); return; }
+    if (!deleted && !cur.deleted) { map.set(rec.id, { rec: mergeEventFields(cur.rec, rec), deleted: false }); return; }
+    if (rec.updatedAt > cur.rec.updatedAt || (rec.updatedAt === cur.rec.updatedAt && deleted && !cur.deleted)) {
       map.set(rec.id, { rec, deleted });
     }
   };
@@ -197,7 +232,7 @@ function mergeRecords(local, remote) {
 
 // Отпечаток набора записей — чтобы понять, отличаются ли локальные данные от удалённых
 function recordsSignature(r) {
-  return r.events.map(e => e.id + ":" + e.updatedAt + ":0")
+  return r.events.map(e => e.id + ":" + e.updatedAt + ":" + MERGE_GROUP_NAMES.map(g => fieldTime(e, g)).join(",") + ":0")
     .concat(r.tombstones.map(t => t.id + ":" + t.updatedAt + ":1"))
     .sort().join("|");
 }
