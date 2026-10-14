@@ -55,6 +55,24 @@
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
+/* Дата/время: iOS Safari игнорирует width и центрирует значение — выравниваем вручную */
+.field input[type="date"], .field input[type="time"], .field input[type="number"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 40px;
+  text-align: left;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.field input[type="date"]::-webkit-date-and-time-value,
+.field input[type="time"]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.2em; }
+.field input[type="date"]::-webkit-calendar-picker-indicator,
+.field input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+.field input[type="date"]::-webkit-calendar-picker-indicator:hover,
+.field input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .field select {
   appearance: none;
   -webkit-appearance: none;

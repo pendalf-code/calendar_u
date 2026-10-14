@@ -112,9 +112,15 @@
   .modal-details .modal-actions { padding-top: 10px; border-top: 1px solid var(--border); }
   .modal-details .modal-actions .btn-primary { flex: 2; }
 
-  .field-row { flex-wrap: wrap; gap: 0 10px; }
-  .field-row .field { flex: 1 1 40%; }
-  .field-row .field:first-child { flex-basis: 100%; }
+  /* Все поля формы одной высоты; 16px — iOS не зумит страницу при фокусе */
+  .field input, .field textarea, .field select { font-size: 16px; }
+  .field input:not([type="checkbox"]):not([type="file"]) { min-height: 46px; }
+  .field .cs-btn { min-height: 46px; font-size: 16px; }
+
+  /* Дата — на всю ширину, «Начало»/«Конец» — две равные колонки */
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .field-row .field { min-width: 0; }
+  .field-row .field:first-child:nth-last-child(3) { grid-column: 1 / -1; }
   .cat-option { width: 44px; height: 44px; }
 
   .toast { bottom: calc(16px + env(safe-area-inset-bottom)); padding: 10px 18px; font-size: 12px; }
